@@ -1,13 +1,35 @@
 import { NavLink } from "react-router-dom"
 
-function Sidebar() {
+interface SidebarProps {
+  mobile?: boolean
+  onClose?: () => void
+}
+
+function Sidebar({ mobile = false, onClose }: SidebarProps) {
   return (
-    <aside className="hidden w-64 border-r border-gray-200 bg-white md:flex md:flex-col">
+    <aside
+      className={
+        mobile
+          ? "flex h-full w-72 flex-col bg-white"
+          : "hidden w-64 border-r border-gray-200 bg-white md:flex md:flex-col"
+      }
+    >
       {/* Logo */}
-      <div className="flex h-16 items-center border-b border-gray-200 px-6">
+      <div className="flex h-16 items-center justify-between border-b border-gray-200 px-6">
         <span className="text-lg font-bold text-gray-950">
           Academic AI
         </span>
+
+        {mobile && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+            aria-label="Close navigation"
+          >
+            ✕
+          </button>
+        )}
       </div>
 
       {/* Navigation */}
@@ -19,6 +41,7 @@ function Sidebar() {
         <div className="space-y-1">
           <NavLink
             to="/dashboard"
+            onClick={onClose}
             className={({ isActive }) =>
               `block rounded-lg px-3 py-2.5 text-sm font-medium transition ${
                 isActive
@@ -32,6 +55,7 @@ function Sidebar() {
 
           <NavLink
             to="/projects"
+            onClick={onClose}
             className={({ isActive }) =>
               `block rounded-lg px-3 py-2.5 text-sm font-medium transition ${
                 isActive
