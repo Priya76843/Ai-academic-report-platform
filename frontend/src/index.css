@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+/* Design tokens from the Slice One Walkthrough. Semantic colours are separate from the accent. */
+@theme {
+  --color-ink: #14181f;
+  --color-ink-2: #4b5563;
+  --color-ink-3: #8b93a1;
+  --color-surface: #ffffff;
+  --color-surface-2: #f5f6f8;
+  --color-surface-3: #ebedf1;
+  --color-line: #dadde4;
+  --color-accent: #2f4a8a;
+  --color-accent-soft: #e8edf8;
+  --color-ok: #1e7a4b;
+  --color-ok-soft: #dcf2e5;
+  --color-warn: #9a6410;
+  --color-warn-soft: #fbefd2;
+  --color-err: #b2302a;
+  --color-err-soft: #fadedc;
+  --font-sans: "Instrument Sans", system-ui, sans-serif;
+  --font-doc: "Tinos", "Times New Roman", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+html, body, #root { height: 100%; }
+body { background: #f2f3f6; color: var(--color-ink); font-family: var(--font-sans); }
