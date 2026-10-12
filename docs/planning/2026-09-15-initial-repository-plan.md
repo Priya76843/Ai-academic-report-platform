@@ -450,6 +450,7 @@ Stated with my recommendation; I will proceed on the recommendation unless you s
 | Date | Change |
 |---|---|
 | 2026-10-06 | Rajeshwari has left the team. Every task in §4.1 (R-1..R-8) and the "R" owner in §6.3 is unowned until the founder decides reallocation (see `docs/reviews/2026-10-05-board-and-api-contract-review.md` and the 2026-10-06 options note below). Slice-2+ knowledge intelligence (template parsing, code analysis, screenshot analysis) also needs a named owner before those slices are planned. |
+| 2026-10-12 | **Foundation scaffold delivered** (F-1…F-9 of §3) on branch `feature/claude/foundation-scaffold`, PR to `develop`. Verified: 23 backend tests, 5 frontend tests, Alembic up/down, presigned PUT/GET against LocalStack, OpenAPI → generated TS types. Postgres published on host port 5433. LocalStack pinned to 4.13.1 because 2026.x images require an auth token. B-01 and F-01 become review-and-own. |
 | 2026-10-12 | **Founder decision:** local object storage is **LocalStack (S3 service)** instead of MinIO. Same S3 API and presigned flow; production remains AWS S3 or any S3-compatible service. ADR-004 updated accordingly. |
 | 2026-10-06 | **Founder decision:** two-person team. Vinay owns the whole backend (former R-1..R-8 plus V-1..V-10). Priya owns the frontend. Task IDs are unchanged; only ownership and sequence change. See §11. |
 

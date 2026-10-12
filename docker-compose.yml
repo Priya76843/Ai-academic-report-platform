@@ -1,0 +1,78 @@
+name: acamedia
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: acamedia
+      POSTGRES_PASSWORD: acamedia
+      POSTGRES_DB: acamedia
+    ports: ["5433:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/dev/postgres-init.sql:/docker-entrypoint-initdb.d/10-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U acamedia -d acamedia"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  localstack:
+    image: localstack/localstack:4.13.1  # last token-free line; 2026.x images require LOCALSTACK_AUTH_TOKEN
+    environment:
+      SERVICES: s3
+      AWS_DEFAULT_REGION: ap-south-1
+      PERSISTENCE: "0"
+    ports: ["4566:4566"]
+    volumes:
+      - ./scripts/dev/localstack-init.sh:/etc/localstack/init/ready.d/10-create-bucket.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "awslocal s3 ls s3://acamedia-local >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+  api:
+    build:
+      context: ./backend
+      dockerfile: ../infra/docker/Dockerfile.backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://acamedia:acamedia@postgres:5432/acamedia
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      S3_ENDPOINT_URL: http://localstack:4566
+    ports: ["8000:8000"]
+    volumes: ["./backend:/app"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      localstack: { condition: service_healthy }
+    profiles: ["app"]
+  worker:
+    build:
+      context: ./backend
+      dockerfile: ../infra/docker/Dockerfile.backend
+    command: celery -A app.workers.celery_app:celery_app worker -Q ingestion,generation,export -l INFO
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://acamedia:acamedia@postgres:5432/acamedia
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      S3_ENDPOINT_URL: http://localstack:4566
+    volumes: ["./backend:/app"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      localstack: { condition: service_healthy }
+    profiles: ["app"]
+volumes:
+  pgdata:

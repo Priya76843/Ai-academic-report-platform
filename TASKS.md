@@ -62,13 +62,12 @@ Team: Vinay = all backend. Priya = frontend. Claude = architecture, contract own
 (none)
 
 ## In Review
-(none)
+- Foundation scaffold — PR `feature/claude/foundation-scaffold` → `develop` (Claude). Covers plan §3 F-1…F-9; B-01 and F-01 become review-and-own once merged.
 
 ## Blocked
 - Embedding provider and vector dimension (founder decision D-4) — blocks B-10 beyond FakeProvider.
-- Foundation scaffold by Claude (plan §3) — if approved, B-01 and F-01 become review-and-own.
 
 ## Done
 - Onboarding: INTERNSHIP-1, 2, 3 (kept on the board for history).
 
-_Regenerated 2026-10-06 from Plane. Previous tickets 4–18 archived in `docs/reviews/plane-backup-2026-10-06.json`._
+_Regenerated 2026-10-06 from Plane; scaffold note added 2026-10-12. Previous tickets 4–18 archived in `docs/reviews/plane-backup-2026-10-06.json`._
