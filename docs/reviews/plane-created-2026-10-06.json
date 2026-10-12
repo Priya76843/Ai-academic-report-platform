@@ -1,0 +1,322 @@
+[
+ [
+  "B-01",
+  "Backend foundation & local environment",
+  "Vinay",
+  1,
+  20,
+  "af0d84f7-b972-478d-aa81-2402fd2f1a8f"
+ ],
+ [
+  "B-02",
+  "Authentication with cookie sessions",
+  "Vinay",
+  1,
+  21,
+  "f59f91c6-7723-40a9-b436-79c484e31e00"
+ ],
+ [
+  "B-03",
+  "Projects and report details",
+  "Vinay",
+  1,
+  22,
+  "37601bf9-7197-44a7-b488-5e661147b28b"
+ ],
+ [
+  "B-04",
+  "Jobs framework",
+  "Vinay",
+  2,
+  23,
+  "1a4bcf13-44c0-4d3b-b045-f4b7f4a1347c"
+ ],
+ [
+  "B-05",
+  "Object storage adapter and project assets",
+  "Vinay",
+  2,
+  24,
+  "39ad9c78-2eb0-4d29-acdc-0c7b3235a80f"
+ ],
+ [
+  "B-06",
+  "Sources API",
+  "Vinay",
+  2,
+  25,
+  "d1d24dbd-9def-4beb-a141-164b77d6c03b"
+ ],
+ [
+  "B-07",
+  "Golden project fixture",
+  "Vinay",
+  2,
+  26,
+  "da975fca-7d81-4bad-b46c-5298e19afb6a"
+ ],
+ [
+  "B-08",
+  "PDF extraction and document metadata",
+  "Vinay",
+  3,
+  27,
+  "f0addcd9-b557-435d-8c05-a9d995ec8655"
+ ],
+ [
+  "B-09",
+  "Page-aware chunking",
+  "Vinay",
+  3,
+  28,
+  "ff161fcd-a76b-4f93-9e8d-08142b07d6a4"
+ ],
+ [
+  "B-10",
+  "Embeddings and pgvector storage",
+  "Vinay",
+  3,
+  29,
+  "0c2a44af-2523-45fb-b4fc-5866b5a95074"
+ ],
+ [
+  "B-11",
+  "Ingestion task ingest_pdf",
+  "Vinay",
+  3,
+  30,
+  "9fe2ae51-0cfa-4646-bd08-d927bf41e2de"
+ ],
+ [
+  "B-12",
+  "LLM gateway, providers, routing and cost",
+  "Vinay",
+  4,
+  31,
+  "e7e88578-a6f7-47e1-994d-e32364206102"
+ ],
+ [
+  "B-13",
+  "Prompt management and Introduction prompt v1",
+  "Vinay",
+  4,
+  32,
+  "45f38b6e-f781-4fb9-b08e-384bc438bb2e"
+ ],
+ [
+  "B-14",
+  "Built-in template and deterministic planner",
+  "Vinay",
+  4,
+  33,
+  "7a32ebce-1262-4c20-bb33-0917d39621f6"
+ ],
+ [
+  "B-15",
+  "Project-scoped retrieval service",
+  "Vinay",
+  4,
+  34,
+  "db99b7bd-150f-41bc-9f21-ba7939e1ba54"
+ ],
+ [
+  "B-16",
+  "Introduction generation worker with citation gate",
+  "Vinay",
+  5,
+  35,
+  "85c5d53c-dade-4a1d-b9e8-f7bb4a592e96"
+ ],
+ [
+  "B-17",
+  "Section review endpoints (edit, approve, regenerate)",
+  "Vinay",
+  5,
+  36,
+  "877db492-1536-4291-932e-a2d349210e0c"
+ ],
+ [
+  "B-18",
+  "DOCX export compiler",
+  "Vinay",
+  6,
+  37,
+  "12dc8649-34e9-479f-8d1a-335d19282caf"
+ ],
+ [
+  "B-19",
+  "Usage and cost telemetry",
+  "Vinay",
+  6,
+  38,
+  "47a81ccc-5916-4959-8fe8-f12b969fd104"
+ ],
+ [
+  "B-20",
+  "[Slice 2+] College format parsing \u2192 ReportTemplateSpec",
+  "Vinay",
+  null,
+  39,
+  "871da187-db1c-418d-82cd-bac2b4fa5e6e"
+ ],
+ [
+  "B-21",
+  "[Slice 2+] Paper links: resolve DOI / arXiv / URL",
+  "Vinay",
+  null,
+  40,
+  "e3c4cc71-3a23-4a4d-b4c7-094a5fec1df9"
+ ],
+ [
+  "B-22",
+  "[Slice 2+] Source code static analysis",
+  "Vinay",
+  null,
+  41,
+  "b1c92e17-cf54-4a95-b7be-bcf91f64b275"
+ ],
+ [
+  "B-23",
+  "[Slice 2+] Screenshot analysis and figures",
+  "Vinay",
+  null,
+  42,
+  "9a7b3dcd-0b2c-485e-b309-cc5d3a1beafd"
+ ],
+ [
+  "B-24",
+  "[Slice 2+] Final review pipeline",
+  "Vinay",
+  null,
+  43,
+  "f900d9f0-ef3a-4bde-b704-4748fd20d6a6"
+ ],
+ [
+  "B-25",
+  "[Slice 2+] PDF export via LibreOffice headless",
+  "Vinay",
+  null,
+  44,
+  "6ddcd4a3-a081-4ecb-aeb0-7c3b7dc527cc"
+ ],
+ [
+  "B-26",
+  "[Slice 2+] Plan editing",
+  "Vinay",
+  null,
+  45,
+  "04c96aa3-1e6c-4f89-a8dc-e27106d41bc5"
+ ],
+ [
+  "F-01",
+  "Frontend foundation and mock-first API client",
+  "Priya",
+  1,
+  46,
+  "39cec17e-c419-4711-9754-2ae7cee0dff5"
+ ],
+ [
+  "F-02",
+  "App shell and project navigation",
+  "Priya",
+  1,
+  47,
+  "538b7f7b-ce28-4556-b271-8bac82f04115"
+ ],
+ [
+  "F-03",
+  "Sign in and register",
+  "Priya",
+  1,
+  48,
+  "d558753f-03fd-436d-9d87-ed11acaaacfa"
+ ],
+ [
+  "F-04",
+  "Projects list and New project",
+  "Priya",
+  2,
+  49,
+  "0c2554ae-a413-491d-aa0d-b02045553754"
+ ],
+ [
+  "F-05",
+  "Setup \u2014 report details",
+  "Priya",
+  2,
+  50,
+  "11ca54af-1744-43ba-9dc5-e0d11bd10737"
+ ],
+ [
+  "F-06",
+  "Sources",
+  "Priya",
+  2,
+  51,
+  "b22b3d6f-bf6c-4864-b27f-57614500efdd"
+ ],
+ [
+  "F-07",
+  "Report plan",
+  "Priya",
+  3,
+  52,
+  "9f46ae2f-c3c1-47da-a279-9227abc99233"
+ ],
+ [
+  "F-08",
+  "Chapter editor",
+  "Priya",
+  4,
+  53,
+  "34067b17-71a2-49a1-8052-55703965dde5"
+ ],
+ [
+  "F-09",
+  "Export",
+  "Priya",
+  5,
+  54,
+  "3f0d7b52-a590-4d45-8ce5-9eb1b49c3be0"
+ ],
+ [
+  "F-10",
+  "Integration and end-to-end test",
+  "Priya",
+  5,
+  55,
+  "2cf3c2d6-0f89-4d6b-8ca8-86d64ae7f595"
+ ],
+ [
+  "F-11",
+  "[Slice 2+] Rich text editor with Markdown round-trip",
+  "Priya",
+  null,
+  56,
+  "39e475e3-7b5d-4224-99c1-96520e5254b8"
+ ],
+ [
+  "F-12",
+  "[Slice 2+] Final review screen",
+  "Priya",
+  null,
+  57,
+  "597d517e-bca2-4762-b057-f8781aaa3aa4"
+ ],
+ [
+  "F-13",
+  "[Slice 2+] Plan editing",
+  "Priya",
+  null,
+  58,
+  "2a231576-972f-4caf-b4c7-51dece0bf9e4"
+ ],
+ [
+  "F-14",
+  "[Slice 2+] Figures: screenshots as numbered figures",
+  "Priya",
+  null,
+  59,
+  "bed7277a-ab38-404c-aa02-5f9a4754abc1"
+ ]
+]
