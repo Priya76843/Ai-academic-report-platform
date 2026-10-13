@@ -48,9 +48,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
     throw new ApiError(errorBody)
   }
 
-  throw new Error(
-    `Request failed with status ${response.status}`,
-  )
+  throw new Error(`Request failed with status ${response.status}`)
 }
 
 export async function getProjects(

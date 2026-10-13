@@ -1,0 +1,53 @@
+
+import type { Project } from "../types/project"
+
+export const mockProjects: Project[] = [
+  {
+    id: "project-001",
+    report_type: "PROJECT_REPORT",
+    title: "AI-Based Face Recognition Attendance System",
+    topic: "Automated attendance using face recognition",
+    description: "A project for face recognition-based attendance.",
+    target_pages: 55,
+    citation_style: "IEEE",
+    status: "DRAFT",
+    template_name: "VTU Project Report",
+    source_counts: {
+      PAPER: 2,
+      PAPER_LINK: 0,
+      COLLEGE_FORMAT: 1,
+      SOURCE_CODE: 1,
+      SCREENSHOT: 4,
+      total: 8,
+    },
+    sections_approved: 0,
+    sections_total: 9,
+    details: {},
+    created_at: "2026-10-10T10:00:00.000Z",
+    updated_at: "2026-10-12T08:00:00.000Z",
+  },
+  {
+    id: "project-002",
+    report_type: "PROJECT_REPORT",
+    title: "Secure Explainable RAG Framework",
+    topic: "Security against prompt injection and data poisoning",
+    description: "An explainable framework for securing RAG systems.",
+    target_pages: 60,
+    citation_style: "IEEE",
+    status: "IN_REVIEW",
+    template_name: "IEEE Report Format",
+    source_counts: {
+      PAPER: 3,
+      PAPER_LINK: 1,
+      COLLEGE_FORMAT: 1,
+      SOURCE_CODE: 1,
+      SCREENSHOT: 2,
+      total: 8,
+    },
+    sections_approved: 3,
+    sections_total: 9,
+    details: {},
+    created_at: "2026-10-09T10:00:00.000Z",
+    updated_at: "2026-10-11T15:30:00.000Z",
+  },
+]

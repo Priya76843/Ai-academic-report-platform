@@ -6,54 +6,30 @@ interface ProjectCardProps {
   project: Project
 }
 
-function getProjectAction(status: Project["status"]) {
-  switch (status) {
+function getProjectAction(project: Project) {
+  switch (project.status) {
     case "DRAFT":
       return {
-        label: "Open project",
-        path: `/projects/${status.toLowerCase()}`,
-      }
-
-    case "INGESTING":
-    case "READY_FOR_PLANNING":
-      return {
-        label: "View progress",
-        path: `/projects/${status.toLowerCase()}`,
+        label: "Continue Setup",
+        path: `/projects/${project.id}/setup`,
       }
 
     case "PLAN_READY":
-      return {
-        label: "Review plan",
-        path: `/projects/${status.toLowerCase()}`,
-      }
-
-    case "GENERATING":
     case "IN_REVIEW":
-    case "QUALITY_REVIEW":
       return {
-        label: "Open report",
-        path: `/projects/${status.toLowerCase()}`,
+        label: "View Plan",
+        path: `/projects/${project.id}/plan`,
       }
 
-    case "ALL_SECTIONS_APPROVED":
-    case "COMPILING":
     case "COMPLETED":
       return {
-        label: "View report",
-        path: `/projects/${status.toLowerCase()}`,
-      }
-
-    case "INGESTION_FAILED":
-    case "GENERATION_FAILED":
-    case "EXPORT_FAILED":
-      return {
-        label: "View issue",
-        path: `/projects/${status.toLowerCase()}`,
+        label: "Export Report",
+        path: `/projects/${project.id}/export`,
       }
 
     default:
       return {
-        label: "Open project",
+        label: "Back to Projects",
         path: "/projects",
       }
   }
@@ -69,7 +45,7 @@ function ProjectCard({ project }: ProjectCardProps) {
         )
       : 0
 
-  const action = getProjectAction(project.status)
+  const action = getProjectAction(project)
 
   const updatedDate = new Date(project.updated_at)
 

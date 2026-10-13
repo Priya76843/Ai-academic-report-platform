@@ -1,3 +1,4 @@
+
 import { NavLink } from "react-router-dom"
 
 interface SidebarProps {
@@ -39,6 +40,7 @@ function Sidebar({ mobile = false, onClose }: SidebarProps) {
         </p>
 
         <div className="space-y-1">
+          {/* Dashboard */}
           <NavLink
             to="/dashboard"
             onClick={onClose}
@@ -53,8 +55,10 @@ function Sidebar({ mobile = false, onClose }: SidebarProps) {
             Dashboard
           </NavLink>
 
+          {/* Projects */}
           <NavLink
             to="/projects"
+            end
             onClick={onClose}
             className={({ isActive }) =>
               `block rounded-lg px-3 py-2.5 text-sm font-medium transition ${
@@ -65,6 +69,21 @@ function Sidebar({ mobile = false, onClose }: SidebarProps) {
             }
           >
             Projects
+          </NavLink>
+
+          {/* New Project */}
+          <NavLink
+            to="/projects/new"
+            onClick={onClose}
+            className={({ isActive }) =>
+              `block rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                isActive
+                  ? "bg-indigo-50 text-indigo-600"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              }`
+            }
+          >
+            + New Project
           </NavLink>
         </div>
       </nav>

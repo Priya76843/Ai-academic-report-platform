@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useNavigate } from "react-router-dom"
@@ -13,6 +13,7 @@ import {
 function NewProjectForm() {
   const navigate = useNavigate()
   const [submitError, setSubmitError] = useState("")
+  const submissionInProgress = useRef(false)
 
   const {
     register,
@@ -33,12 +34,15 @@ function NewProjectForm() {
   })
 
   const onSubmit = async (data: ProjectFormValues) => {
+    // Prevent duplicate submissions before React re-renders.
+    if (submissionInProgress.current) return
+
+    submissionInProgress.current = true
     setSubmitError("")
     clearErrors()
 
     try {
       const idempotencyKey = crypto.randomUUID()
-
       const project = await createProject(data, idempotencyKey)
 
       navigate(`/projects/${project.id}/setup`)
@@ -78,6 +82,8 @@ function NewProjectForm() {
           ? error.message
           : "Unable to create project. Please try again.",
       )
+    } finally {
+      submissionInProgress.current = false
     }
   }
 
@@ -111,13 +117,8 @@ function NewProjectForm() {
           disabled={isSubmitting}
           className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-gray-900 disabled:cursor-not-allowed disabled:bg-gray-100"
         >
-          <option value="PROJECT_REPORT">
-            Project report
-          </option>
-
-          <option value="SEMINAR_REPORT">
-            Seminar report
-          </option>
+          <option value="PROJECT_REPORT">Project report</option>
+          <option value="SEMINAR_REPORT">Seminar report</option>
         </select>
 
         <p className="mt-1 text-xs text-gray-500">
@@ -218,7 +219,6 @@ function NewProjectForm() {
 
       {/* Target Pages + Citation Style */}
       <div className="grid gap-6 sm:grid-cols-2">
-        {/* Target Pages */}
         <div>
           <label
             htmlFor="target_pages"
@@ -247,7 +247,6 @@ function NewProjectForm() {
           )}
         </div>
 
-        {/* Citation Style */}
         <div>
           <label
             htmlFor="citation_style"
@@ -298,4 +297,3 @@ function NewProjectForm() {
 }
 
 export default NewProjectForm
-
