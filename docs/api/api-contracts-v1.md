@@ -85,9 +85,9 @@ Job             see §1.2
 
 | Method & path | Request → Response | Errors |
 |---|---|---|
-| `POST /auth/register` | `{email, password}` → 201 User + cookie | 409 `EMAIL_TAKEN`, 422 |
-| `POST /auth/login` | `{email, password}` → 200 User + cookie | 401 `INVALID_CREDENTIALS` (same message for both halves), 429 |
-| `POST /auth/logout` | → 204, session revoked, cookie cleared | 401 |
+| `POST /auth/register` | `{email, password}` → 201 User + cookie. Password 10–128 characters; email normalised to lower case | 409 `EMAIL_TAKEN`, 422 |
+| `POST /auth/login` | `{email, password}` → 200 User + cookie. No password-policy validation on login. Rate limit keyed by email and by IP; fails open if Redis is unavailable | 401 `INVALID_CREDENTIALS` (same message for both halves), 429 `RATE_LIMITED` |
+| `POST /auth/logout` | → 204 always: cookie cleared, session revoked if the token resolves. Idempotent; never 401 | — |
 | `GET /auth/me` | → User | 401 |
 | `GET /projects?page&page_size` | → list of Project | |
 | `POST /projects` (+`Idempotency-Key`) | `{report_type, title (5–255), topic (≤500), description? (≤5000), target_pages? (10–300), citation_style?}` → 201 Project | 422 |
@@ -168,4 +168,5 @@ Section content is a Markdown string using only: paragraphs, `##`/`###` headings
 
 | Date | Change |
 |---|---|
+| 2026-10-21 | Auth rows clarified from PR #4 review: password policy 10–128 at registration only; login rate limit keyed by email and IP, fail-open; logout idempotent (204, never 401). |
 | 2026-10-06 | v1 frozen from plan §6 plus accepted PDF additions (sessions table, readiness flags, paging, idempotency storage, PDF source-type names). Supersedes the interns' PDF and ticket-level contracts. |
