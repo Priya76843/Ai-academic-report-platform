@@ -10,7 +10,7 @@ const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, ref
 async function start() {
   if (import.meta.env.VITE_API_MODE !== "real") {
     const { worker } = await import("./mocks/browser");
-    await worker.start({ onUnhandledRequest: "bypass" });
+    await worker.start({ onUnhandledRequest: "error" });
   }
   createRoot(document.getElementById("root")!).render(
     <StrictMode>
