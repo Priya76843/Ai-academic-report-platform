@@ -8,7 +8,8 @@ Single source of truth for frontend and backend. Every Plane ticket references t
 - Session: HttpOnly, Secure, SameSite=Lax cookie `session_id`, backed by a `sessions` table. The browser never handles a token.
 - Ownership: every project-scoped query filters by the authenticated user. A resource the user does not own returns **404**, never 403.
 - Lists: always `{"items": [...], "page": 1, "page_size": 20, "total": n}`.
-- Mutations that may be retried accept `Idempotency-Key`; the backend stores key + user + request hash + response for 24 h and replays the stored response.
+- Mutations that may be retried accept `Idempotency-Key` (required on `POST /projects`); the backend stores key + user + request hash + response for 24 h and replays the stored response.
+- **Organisations (decided 2026-10-27):** every project belongs to an `organization`; a solo student is an organisation of one. Ownership checks are membership-based. Rows: `organizations {id, name, kind: STUDENT|CENTRE|COLLEGE}`, `organization_members {organization_id, user_id, role: OWNER|STAFF}`, `projects.organization_id`. Endpoint shapes are unchanged in slice 1; `Project` gains `organization_id`. Ticket B-03a.
 
 ### 1.1 Error envelope (every non-2xx)
 
@@ -59,7 +60,7 @@ User            { id, email, created_at }
 Project         { id, report_type, title, topic, description, target_pages, citation_style, status,
                   template_name, source_counts: {PAPER, PAPER_LINK, COLLEGE_FORMAT, SOURCE_CODE, SCREENSHOT, total},
                   sections_approved, sections_total, details: ProjectDetails, logo_asset_id, created_at, updated_at }
-ProjectDetails  { institution: {college, university, department, degree, academic_year, semester},
+ProjectDetails  { institution: {college, university, department, degree, academic_year, semester: int},
                   students: [{name, usn}], guide: {name, designation}, hod: {name}, principal: {name}, instructions }
 Asset           { id, project_id, asset_type, filename, mime_type, size_bytes, width, height, status, created_at }
 Source          { id, project_id, source_type, filename, url, label, mime_type, size_bytes, status,
@@ -90,7 +91,7 @@ Job             see §1.2
 | `POST /auth/logout` | → 204 always: cookie cleared, session revoked if the token resolves. Idempotent; never 401 | — |
 | `GET /auth/me` | → User | 401 |
 | `GET /projects?page&page_size` | → list of Project | |
-| `POST /projects` (+`Idempotency-Key`) | `{report_type, title (5–255), topic (≤500), description? (≤5000), target_pages? (10–300), citation_style?}` → 201 Project | 422 |
+| `POST /projects` (`Idempotency-Key` **required**, 1–255 chars) | `{report_type, title (5–255), topic (≤500), description? (≤5000), target_pages? (10–300), citation_style?}` → 201 Project. Same key + same body → same 201; same key + different body → 409 `IDEMPOTENCY_KEY_REUSED` | 422 |
 | `GET /projects/{id}` | → Project | 404 |
 | `PATCH /projects/{id}` | partial `{title?, topic?, description?, target_pages?, citation_style?, details?}`; `details.students` replaced whole, never normalised → Project | 404, 422 |
 | `DELETE /projects/{id}` | → 204 soft delete; derived data removal is a job (S2) | 404 |
@@ -122,6 +123,7 @@ Job             see §1.2
 | `GET /projects/{id}/exports` | → list of Export | |
 | `GET /exports/{eid}/download` | → `{url, expires_at}` fetched at click time | 404, 409 `EXPORT_NOT_READY` |
 | `GET /jobs/{jid}` | → Job | 404 |
+| `GET /projects/{id}/jobs?active=true` | → `{items: Job[]}` for the project, newest first; `active=true` returns only QUEUED / RUNNING / RETRYING. Feeds the jobs tray after a page refresh | |
 | `GET /projects/{id}/usage` | → `{total_estimated_cost_inr, by_job_type: {…}, events: [{job_id, model, input_tokens, output_tokens, estimated_cost_inr, created_at}]}` | |
 | `GET /health` | → `{status: "ok", version}` | |
 
@@ -168,5 +170,6 @@ Section content is a Markdown string using only: paragraphs, `##`/`###` headings
 
 | Date | Change |
 |---|---|
+| 2026-10-27 | From the B-03 / F-02 reviews: `Idempotency-Key` required on project create with `IDEMPOTENCY_KEY_REUSED`; `GET /projects/{id}/jobs` added for the jobs tray; `semester` typed as int; organisations recorded as a data-model decision (B-03a). |
 | 2026-10-21 | Auth rows clarified from PR #4 review: password policy 10–128 at registration only; login rate limit keyed by email and IP, fail-open; logout idempotent (204, never 401). |
 | 2026-10-06 | v1 frozen from plan §6 plus accepted PDF additions (sessions table, readiness flags, paging, idempotency storage, PDF source-type names). Supersedes the interns' PDF and ticket-level contracts. |
