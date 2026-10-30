@@ -7,6 +7,9 @@ AI Project Documentation Platform (working name; folder/repo `acamedia-builder`)
 
 Status 2026-10-12: planning complete, repository initialised, foundation scaffold built by Claude (PR `feature/claude/foundation-scaffold` → `develop`). No product logic yet. Slice 1 starts 2026-10-06 and demos in week 6 (2026-11-14).
 
+# Go-to-market (decided 2026-10-27)
+Two zero-engineering tests run in parallel until 2026-11-30: (1) student ₹499 pre-orders for the April season, pass ≥25; (2) project-centre pilots at ₹15,000 advance, pass ≥3 of 20 calls. Whichever produces advance payment decides the channel. Product unchanged either way. Engineering consequence: add organisations to the data model before B-03 lands. Full reasoning: `docs/planning/2026-10-27-go-to-market-tests.md`.
+
 # Team
 - Founder / approver: Vivek (viveksj2920). Decides scope, architecture approvals, provider choices.
 - Vinay: all backend (foundation, auth, projects, jobs, storage, sources, ingestion, retrieval, gateway, planner, generation, review, export, telemetry).
