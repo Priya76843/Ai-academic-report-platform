@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { cleanup, render, screen, waitFor, fireEvent } from "@testing-library/react";
+import {
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  fireEvent,
+} from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { AppShell } from "./AppShell";
@@ -61,7 +67,11 @@ describe("F-02 AppShell", () => {
 
   it("shows active jobs for the current project", async () => {
     registerJob(
-      { job_id: "job-shell-1", job_type: "SECTION_GENERATE", status: "RUNNING" },
+      {
+        job_id: "job-shell-1",
+        job_type: "SECTION_GENERATE",
+        status: "RUNNING",
+      },
       project.id,
     );
 
@@ -79,13 +89,19 @@ describe("F-02 AppShell", () => {
 
   it("does not count jobs from another project", async () => {
     registerJob(
-      { job_id: "job-other-1", job_type: "SECTION_GENERATE", status: "RUNNING" },
+      {
+        job_id: "job-other-1",
+        job_type: "SECTION_GENERATE",
+        status: "RUNNING",
+      },
       "another-project",
     );
 
     renderShell();
 
-    expect(await screen.findByRole("button", { name: "All caught up" })).toBeTruthy();
+    expect(
+      await screen.findByRole("button", { name: "All caught up" }),
+    ).toBeTruthy();
   });
 
   it("uses the API readiness field to unlock the plan step", async () => {
@@ -104,5 +120,28 @@ describe("F-02 AppShell", () => {
     expect(
       await screen.findByRole("button", { name: "Open navigation" }),
     ).toBeTruthy();
+  });
+
+  it("shows unfinished main navigation items as disabled", async () => {
+    renderShell("/projects");
+
+    expect(await screen.findByText("Projects page")).toBeTruthy();
+
+    expect(
+      screen.getByRole("navigation", { name: "Main navigation" }),
+    ).toBeTruthy();
+
+    expect(screen.getByText("Templates library")).toBeTruthy();
+    expect(screen.getByText("Usage")).toBeTruthy();
+
+    expect(screen.getAllByText("Slice 2+")).toHaveLength(2);
+
+    expect(
+      screen.queryByRole("link", { name: "Templates library" }),
+    ).toBeNull();
+
+    expect(
+      screen.queryByRole("link", { name: "Usage" }),
+    ).toBeNull();
   });
 });

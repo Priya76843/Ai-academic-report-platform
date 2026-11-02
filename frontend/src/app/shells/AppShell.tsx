@@ -41,6 +41,11 @@ function getStepStates(
 ): Record<string, StepState> {
   const status = project.status;
 
+  // A DRAFT project is complete at Setup only after its college is provided.
+  const setupDone =
+    status !== "DRAFT" ||
+    Boolean(project.details.institution?.college);
+
   const planReady = [
     "PLAN_READY",
     "GENERATING",
@@ -65,23 +70,32 @@ function getStepStates(
   const exportDone = status === "COMPLETED";
 
   return {
-    setup: "done",
-    sources: canContinueToPlan ? "done" : "current",
+    setup: setupDone ? "done" : "current",
+
+    sources: canContinueToPlan
+      ? "done"
+      : setupDone
+        ? "current"
+        : "locked",
+
     plan: planReady
       ? "done"
       : canContinueToPlan
         ? "current"
         : "locked",
+
     chapters: chaptersDone
       ? "done"
       : planReady
         ? "current"
         : "locked",
+
     "final-review": reviewDone
       ? "done"
       : chaptersDone
         ? "current"
         : "locked",
+
     export: exportDone
       ? "done"
       : reviewDone
@@ -147,8 +161,7 @@ function ProjectNavigation({ project }: { project: Project }) {
           );
         }
 
-        // The router currently has no /sections index route.
-        // Keep Chapters visible, but do not link to a nonexistent page.
+        // The router currently has no /sections index route. Keep Chapters visible, but do not link to a nonexistent page.
         if (step.key === "chapters") {
           return (
             <div
@@ -216,6 +229,7 @@ function Breadcrumb({ project }: { project?: Project }) {
 function JobsTray({ projectId }: { projectId?: string }) {
   const [open, setOpen] = useState(false);
 
+  // TODO(B-04): Replace the local registry with a backend active-jobs endpoint so jobs from other sessions remain visible after refresh.
   const trackedJobs = useSyncExternalStore(
     subscribeToJobs,
     getTrackedJobs,
@@ -373,19 +387,21 @@ export function AppShell() {
             Projects
           </NavLink>
 
-          <NavLink
-            to="/templates"
-            className="rounded-md px-3 py-2 text-sm text-ink-2 hover:bg-surface-3"
+          <div
+            aria-disabled="true"
+            className="flex items-center justify-between rounded-md px-3 py-2 text-sm text-ink-3"
           >
-            Templates library
-          </NavLink>
+            <span>Templates library</span>
+            <small className="text-xs">Slice 2+</small>
+          </div>
 
-          <NavLink
-            to="/usage"
-            className="rounded-md px-3 py-2 text-sm text-ink-2 hover:bg-surface-3"
+          <div
+            aria-disabled="true"
+            className="flex items-center justify-between rounded-md px-3 py-2 text-sm text-ink-3"
           >
-            Usage
-          </NavLink>
+            <span>Usage</span>
+            <small className="text-xs">Slice 2+</small>
+          </div>
         </nav>
       )}
     </>

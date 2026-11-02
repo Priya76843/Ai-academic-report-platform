@@ -3,9 +3,7 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/lib/api/queries";
-import {
-  updateTrackedJob,
-} from "@/lib/jobs/jobRegistry";
+import { updateTrackedJob } from "@/lib/jobs/jobRegistry";
 import type { Job } from "@/lib/api/types";
 
 const ACTIVE = new Set(["QUEUED", "RUNNING", "RETRYING"]);
@@ -22,11 +20,13 @@ export function useJob(jobId: string | null | undefined) {
       isJobActive(query.state.data) ? 2000 : false,
   });
 
+  const jobData = q.data;
+
   useEffect(() => {
-    if (jobId && q.data) {
-      updateTrackedJob(jobId, q.data.status);
+    if (jobId && jobData) {
+      updateTrackedJob(jobId, jobData.status);
     }
-  }, [jobId, q.data?.status]);
+  }, [jobId, jobData]);
 
   return {
     job: q.data,
