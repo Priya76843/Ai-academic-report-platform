@@ -1,10 +1,11 @@
 import logging
+from contextlib import suppress
 
 from redis.client import Redis
 from redis.exceptions import RedisError
 
-from app.core.config import get_settings
 from app.core.exceptions import RateLimitedError
+from app.core.redis import get_redis
 
 logger = logging.getLogger(__name__)
 
@@ -20,10 +21,9 @@ def _increment(redis: Redis, key: str) -> int:
 
 
 def check_login_rate_limit(email: str, client_ip: str) -> None:
-    settings = get_settings()
     normalized_email = email.strip().lower()
     key = f"auth:login:{normalized_email}:{client_ip}"
-    redis = Redis.from_url(settings.redis_url, decode_responses=True)
+    redis = get_redis()
 
     try:
         attempts = _increment(redis, key)
@@ -37,6 +37,6 @@ def check_login_rate_limit(email: str, client_ip: str) -> None:
             "Redis is unavailable; allowing login attempt for %s",
             client_ip,
         )
-
     finally:
-        redis.close()
+        with suppress(RedisError):
+            redis.close()

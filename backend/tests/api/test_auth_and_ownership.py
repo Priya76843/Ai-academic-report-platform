@@ -59,3 +59,81 @@ def test_job_endpoint_is_owner_scoped(signed_in, db, user, other_user):
     assert signed_in.get(f"/api/v1/jobs/{my_job.id}").status_code == 200
     assert signed_in.get(f"/api/v1/jobs/{my_job.id}").json()["status"] == "QUEUED"
     assert signed_in.get(f"/api/v1/jobs/{their_job.id}").status_code == 404
+
+    body = signed_in.get(f"/api/v1/jobs/{my_job.id}").json()
+
+    assert body["id"] == str(my_job.id)
+    assert body["project_id"] == str(mine.id)
+    assert body["job_type"] == "ingest_pdf"
+    assert body["status"] == "QUEUED"
+    assert isinstance(body["progress"], dict)
+    assert body["attempt"] == 1
+    assert body["error"] is None
+    assert "created_at" in body
+    assert "started_at" in body
+    assert "completed_at" in body
+
+
+def test_project_jobs_active_filter(signed_in, db, user):
+    project = _project(db, user)
+
+    queued = create_job(db, job_type=JobType.INGEST_PDF, project_id=project.id)
+    running = create_job(db, job_type=JobType.GENERATE_SECTION, project_id=project.id)
+    retrying = create_job(db, job_type=JobType.EXPORT_DOCX, project_id=project.id)
+    succeeded = create_job(db, job_type=JobType.INGEST_PDF, project_id=project.id)
+    failed = create_job(db, job_type=JobType.INGEST_PDF, project_id=project.id)
+
+    running.status = "RUNNING"
+    retrying.status = "RETRYING"
+    succeeded.status = "SUCCEEDED"
+    failed.status = "FAILED"
+    db.commit()
+
+    response = signed_in.get(
+        f"/api/v1/projects/{project.id}/jobs",
+        params={"active": "true"},
+    )
+
+    assert response.status_code == 200
+    returned_ids = {item["id"] for item in response.json()}
+
+    assert returned_ids == {
+        str(queued.id),
+        str(running.id),
+        str(retrying.id),
+    }
+
+
+def test_project_jobs_without_active_filter_returns_all(signed_in, db, user):
+    project = _project(db, user)
+
+    queued = create_job(db, job_type=JobType.INGEST_PDF, project_id=project.id)
+    succeeded = create_job(db, job_type=JobType.INGEST_PDF, project_id=project.id)
+    succeeded.status = "SUCCEEDED"
+    db.commit()
+
+    response = signed_in.get(f"/api/v1/projects/{project.id}/jobs")
+
+    assert response.status_code == 200
+    returned_ids = {item["id"] for item in response.json()}
+    assert returned_ids == {str(queued.id), str(succeeded.id)}
+
+
+def test_project_jobs_rejects_other_users_project(signed_in, db, other_user):
+    project = _project(db, other_user)
+
+    response = signed_in.get(f"/api/v1/projects/{project.id}/jobs")
+
+    assert response.status_code == 404
+
+
+def test_project_jobs_returns_empty_list(signed_in, db, user):
+    project = _project(db, user)
+
+    response = signed_in.get(
+        f"/api/v1/projects/{project.id}/jobs",
+        params={"active": "true"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == []

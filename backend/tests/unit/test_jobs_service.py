@@ -33,3 +33,66 @@ def test_fail_classifies(db):
 def test_classify_defaults():
     assert classify(ValueError("x")) == ErrorCategory.MALFORMED_INPUT
     assert classify(RuntimeError("x")) == ErrorCategory.INTERNAL
+
+
+@pytest.mark.parametrize(
+    ("initial_status", "target_status"),
+    [
+        (JobStatus.QUEUED, JobStatus.RUNNING),
+        (JobStatus.QUEUED, JobStatus.FAILED),
+        (JobStatus.RUNNING, JobStatus.SUCCEEDED),
+        (JobStatus.RUNNING, JobStatus.FAILED),
+        (JobStatus.RUNNING, JobStatus.RETRYING),
+        (JobStatus.RETRYING, JobStatus.RUNNING),
+        (JobStatus.RETRYING, JobStatus.FAILED),
+    ],
+)
+def test_all_legal_job_transitions(db, initial_status, target_status):
+    job = create_job(db, job_type=JobType.INGEST_PDF, project_id=None)
+
+    if initial_status != JobStatus.QUEUED:
+        transition(db, job, JobStatus.RUNNING)
+        if initial_status == JobStatus.RETRYING:
+            transition(db, job, JobStatus.RETRYING)
+
+    result = transition(db, job, target_status)
+
+    assert result.status == target_status.value
+
+
+@pytest.mark.parametrize(
+    ("initial_status", "target_status"),
+    [
+        (JobStatus.QUEUED, JobStatus.SUCCEEDED),
+        (JobStatus.QUEUED, JobStatus.RETRYING),
+        (JobStatus.QUEUED, JobStatus.RETRYING),
+        (JobStatus.RUNNING, JobStatus.QUEUED),
+        (JobStatus.RUNNING, JobStatus.RUNNING),
+        (JobStatus.RUNNING, JobStatus.RUNNING),
+        (JobStatus.RETRYING, JobStatus.QUEUED),
+        (JobStatus.RETRYING, JobStatus.SUCCEEDED),
+        (JobStatus.RETRYING, JobStatus.SUCCEEDED),
+        (JobStatus.SUCCEEDED, JobStatus.QUEUED),
+        (JobStatus.SUCCEEDED, JobStatus.RUNNING),
+        (JobStatus.SUCCEEDED, JobStatus.RETRYING),
+        (JobStatus.SUCCEEDED, JobStatus.FAILED),
+        (JobStatus.FAILED, JobStatus.QUEUED),
+        (JobStatus.FAILED, JobStatus.RUNNING),
+        (JobStatus.FAILED, JobStatus.RETRYING),
+        (JobStatus.FAILED, JobStatus.SUCCEEDED),
+        (JobStatus.FAILED, JobStatus.FAILED),
+    ],
+)
+def test_illegal_job_transitions_are_rejected(db, initial_status, target_status):
+    job = create_job(db, job_type=JobType.INGEST_PDF, project_id=None)
+
+    if initial_status in (JobStatus.RUNNING, JobStatus.RETRYING):
+        transition(db, job, JobStatus.RUNNING)
+        if initial_status == JobStatus.RETRYING:
+            transition(db, job, JobStatus.RETRYING)
+    elif initial_status in (JobStatus.SUCCEEDED, JobStatus.FAILED):
+        transition(db, job, JobStatus.RUNNING)
+        transition(db, job, initial_status)
+
+    with pytest.raises(IllegalJobTransition):
+        transition(db, job, target_status)

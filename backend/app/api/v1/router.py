@@ -7,5 +7,6 @@ api_router.include_router(health.router)
 api_router.include_router(auth.router)
 api_router.include_router(jobs.router)
 api_router.include_router(projects.router)
+api_router.include_router(jobs.project_jobs_router)
 
-# B-05 assets, B-06 sources, B-14 plan/sections, B-16/B-17 generate/review, B-18 exports, B-19 usage
+# B-03 projects, B-05 assets, B-06 sources, B-14 plan/sections, B-16/B-17 generate/review, B-18 exports, B-19 usage

@@ -5,6 +5,7 @@ Each test runs inside a transaction that is rolled back, so tests never see each
 import os
 import uuid
 from collections.abc import Generator
+from urllib.parse import urlparse
 
 import pytest
 from fastapi.testclient import TestClient
@@ -25,6 +26,9 @@ from app.modules.auth.service import create_session  # noqa: E402
 from app.modules.users.models import User  # noqa: E402
 
 TEST_DB_URL = os.environ.get("TEST_DATABASE_URL", get_settings().test_database_url)
+_TEST_DATABASE_NAME = urlparse(TEST_DB_URL).path.lstrip("/")
+if not _TEST_DATABASE_NAME.endswith("_test"):
+    raise RuntimeError("Refusing destructive test setup: TEST_DATABASE_URL must target a database ending in '_test'.")
 
 
 @pytest.fixture(scope="session")
@@ -36,6 +40,7 @@ def engine():
             c.commit()
     except Exception as exc:  # pragma: no cover
         pytest.skip(f"database not available at {TEST_DB_URL}: {exc}")
+
     Base.metadata.drop_all(eng)
     Base.metadata.create_all(eng)
     yield eng

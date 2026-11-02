@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://acamedia:acamedia@localhost:5433/acamedia"
     test_database_url: str = "postgresql+psycopg://acamedia:acamedia@localhost:5433/acamedia_test"
     redis_url: str = "redis://localhost:6379/0"
+    resource_lock_ttl_seconds: int = Field(default=900, gt=0)
     celery_broker_url: str = "redis://localhost:6379/1"
     celery_result_backend: str = "redis://localhost:6379/2"
 
