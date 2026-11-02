@@ -93,7 +93,7 @@ Job             see §1.2
 | `GET /projects?page&page_size` | → list of Project | |
 | `POST /projects` (`Idempotency-Key` **required**, 1–255 chars) | `{report_type, title (5–255), topic (≤500), description? (≤5000), target_pages? (10–300), citation_style?}` → 201 Project. Same key + same body → same 201; same key + different body → 409 `IDEMPOTENCY_KEY_REUSED` | 422 |
 | `GET /projects/{id}` | → Project | 404 |
-| `PATCH /projects/{id}` | partial `{title?, topic?, description?, target_pages?, citation_style?, details?}`; `details.students` replaced whole, never normalised → Project | 404, 422 |
+| `PATCH /projects/{id}` | partial `{title?, topic?, description?, target_pages?, citation_style?, details?, logo_asset_id?}`; `details.students` replaced whole, never normalised; `logo_asset_id` must be a READY `LOGO` asset of this project (null clears it) → Project | 404, 422 `ASSET_NOT_READY` |
 | `DELETE /projects/{id}` | → 204 soft delete; derived data removal is a job (S2) | 404 |
 | `POST /projects/{id}/assets` | `{asset_type, filename, mime_type, size_bytes}` → 201 `{asset, upload: {url, method: "PUT", headers, expires_at}}` | 422 `UNSUPPORTED_TYPE`, `IMAGE_TOO_SMALL` |
 | `POST /projects/{id}/assets/{aid}/complete` | → 200 Asset (dimensions verified) | 409 `OBJECT_NOT_FOUND` |
@@ -170,6 +170,7 @@ Section content is a Markdown string using only: paragraphs, `##`/`###` headings
 
 | Date | Change |
 |---|---|
+| 2026-11-02 | From the F-05 review: `PATCH /projects/{id}` accepts `logo_asset_id` (READY `LOGO` asset of the project, 422 `ASSET_NOT_READY`) so the uploaded logo is attached to the project. Backend: B-05. |
 | 2026-10-27 | From the B-03 / F-02 reviews: `Idempotency-Key` required on project create with `IDEMPOTENCY_KEY_REUSED`; `GET /projects/{id}/jobs` added for the jobs tray; `semester` typed as int; organisations recorded as a data-model decision (B-03a). |
 | 2026-10-21 | Auth rows clarified from PR #4 review: password policy 10–128 at registration only; login rate limit keyed by email and IP, fail-open; logout idempotent (204, never 401). |
 | 2026-10-06 | v1 frozen from plan §6 plus accepted PDF additions (sessions table, readiness flags, paging, idempotency storage, PDF source-type names). Supersedes the interns' PDF and ticket-level contracts. |
