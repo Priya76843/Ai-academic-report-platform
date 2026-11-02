@@ -1,4 +1,4 @@
-import {
+﻿import {
   useEffect,
   useState,
   useSyncExternalStore,
@@ -7,9 +7,14 @@ import {
   NavLink,
   Outlet,
   useLocation,
+  useNavigate,
   useParams,
 } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import {
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { api } from "@/lib/api/client";
 import { queries } from "@/lib/api/queries";
 import type { Project } from "@/lib/api/types";
 import {
@@ -249,7 +254,9 @@ function JobsTray({ projectId }: { projectId?: string }) {
           <h2 className="mb-2 text-sm font-semibold">Active jobs</h2>
 
           {activeJobs.length === 0 ? (
-            <p className="text-sm text-ink-3">All caught up. No active jobs.</p>
+            <p className="text-sm text-ink-3">
+              All caught up. No active jobs.
+            </p>
           ) : (
             <ul className="flex flex-col gap-3">
               {activeJobs.map((job) => (
@@ -276,7 +283,11 @@ function JobsTray({ projectId }: { projectId?: string }) {
 export function AppShell() {
   const { projectId } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const projectQuery = useQuery({
     ...queries.project(projectId ?? ""),
@@ -288,6 +299,21 @@ export function AppShell() {
   useEffect(() => {
     setMobileOpen(false);
   }, [location.pathname]);
+
+  async function handleLogout() {
+    if (loggingOut) return;
+
+    setLoggingOut(true);
+
+    try {
+      await api<void>("/auth/logout", { method: "POST" });
+    } catch {
+      // Leave the protected area even if the logout request fails.
+    } finally {
+      queryClient.clear();
+      navigate("/login", { replace: true });
+    }
+  }
 
   const sidebar = (
     <>
@@ -392,7 +418,9 @@ export function AppShell() {
             <div className="flex min-w-0 items-center gap-3">
               <button
                 type="button"
-                aria-label={mobileOpen ? "Close navigation" : "Open navigation"}
+                aria-label={
+                  mobileOpen ? "Close navigation" : "Open navigation"
+                }
                 aria-expanded={mobileOpen}
                 onClick={() => setMobileOpen((value) => !value)}
                 className="rounded-md border border-line px-3 py-2 text-sm min-[761px]:hidden"
@@ -413,6 +441,15 @@ export function AppShell() {
               >
                 U
               </div>
+
+              <button
+                type="button"
+                onClick={() => void handleLogout()}
+                disabled={loggingOut}
+                className="rounded-md border border-line px-3 py-2 text-sm text-ink-2 hover:bg-surface-3 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loggingOut ? "Signing out..." : "Log out"}
+              </button>
             </div>
           </header>
 
