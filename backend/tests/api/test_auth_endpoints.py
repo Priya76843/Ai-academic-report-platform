@@ -1,4 +1,6 @@
 from app.core.security import verify_password
+from app.modules.organizations.enums import OrganizationKind, OrganizationRole
+from app.modules.organizations.models import Organization, OrganizationMember
 from app.modules.users.models import User
 
 
@@ -17,6 +19,27 @@ def test_register_creates_user_and_session(client, db):
     user = db.query(User).filter_by(email="new-user@example.com").one()
     assert verify_password("correct horse battery", user.password_hash)
     assert client.cookies.get("session_id")
+
+    organization = (
+        db.query(Organization)
+        .filter_by(
+            name="new-user",
+            kind=OrganizationKind.STUDENT.value,
+        )
+        .one()
+    )
+
+    membership = (
+        db.query(OrganizationMember)
+        .filter_by(
+            organization_id=organization.id,
+            user_id=user.id,
+        )
+        .one()
+    )
+
+    assert membership.role == OrganizationRole.OWNER.value
+    assert db.query(OrganizationMember).filter_by(user_id=user.id).count() == 1
 
 
 def test_register_rejects_duplicate_email(client, user):

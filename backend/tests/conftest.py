@@ -23,6 +23,8 @@ from app.db.base import Base  # noqa: E402
 from app.db.session import get_db  # noqa: E402
 from app.main import create_app  # noqa: E402
 from app.modules.auth.service import create_session  # noqa: E402
+from app.modules.organizations.enums import OrganizationKind, OrganizationRole
+from app.modules.organizations.models import Organization, OrganizationMember
 from app.modules.users.models import User  # noqa: E402
 
 TEST_DB_URL = os.environ.get("TEST_DATABASE_URL", get_settings().test_database_url)
@@ -74,16 +76,54 @@ def client(app) -> TestClient:
 
 @pytest.fixture
 def user(db) -> User:
-    u = User(email=f"{uuid.uuid4().hex[:8]}@example.com", password_hash=hash_password("correct horse battery"))
+    u = User(
+        email=f"{uuid.uuid4().hex[:8]}@example.com",
+        password_hash=hash_password("correct horse battery"),
+    )
     db.add(u)
+    db.flush()
+
+    organization = Organization(
+        name=u.email.split("@", 1)[0],
+        kind=OrganizationKind.STUDENT.value,
+    )
+    db.add(organization)
+    db.flush()
+
+    db.add(
+        OrganizationMember(
+            organization_id=organization.id,
+            user_id=u.id,
+            role=OrganizationRole.OWNER.value,
+        )
+    )
     db.commit()
     return u
 
 
 @pytest.fixture
 def other_user(db) -> User:
-    u = User(email=f"{uuid.uuid4().hex[:8]}@example.com", password_hash=hash_password("another password"))
+    u = User(
+        email=f"{uuid.uuid4().hex[:8]}@example.com",
+        password_hash=hash_password("another password"),
+    )
     db.add(u)
+    db.flush()
+
+    organization = Organization(
+        name=u.email.split("@", 1)[0],
+        kind=OrganizationKind.STUDENT.value,
+    )
+    db.add(organization)
+    db.flush()
+
+    db.add(
+        OrganizationMember(
+            organization_id=organization.id,
+            user_id=u.id,
+            role=OrganizationRole.OWNER.value,
+        )
+    )
     db.commit()
     return u
 

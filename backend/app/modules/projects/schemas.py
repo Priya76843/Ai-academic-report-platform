@@ -77,6 +77,7 @@ class ProjectOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
+    organization_id: uuid.UUID
     report_type: ReportType
     title: str
     topic: str

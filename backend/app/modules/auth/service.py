@@ -10,6 +10,8 @@ from app.core.config import get_settings
 from app.core.exceptions import ConflictError, UnauthenticatedError
 from app.core.security import hash_password, hash_token, new_session_token, verify_password
 from app.modules.auth.models import Session
+from app.modules.organizations.enums import OrganizationKind, OrganizationRole
+from app.modules.organizations.models import Organization, OrganizationMember
 from app.modules.users.models import User
 
 
@@ -61,8 +63,28 @@ def register_user_with_session(db: DbSession, email: str, password: str) -> tupl
     token = new_session_token()
 
     try:
+        # Create user
         db.add(user)
         db.flush()
+
+        # Create personal STUDENT organization
+        organization = Organization(
+            name=normalized_email.split("@", 1)[0],
+            kind=OrganizationKind.STUDENT.value,
+        )
+        db.add(organization)
+        db.flush()
+
+        # Assign OWNER membership
+        db.add(
+            OrganizationMember(
+                organization_id=organization.id,
+                user_id=user.id,
+                role=OrganizationRole.OWNER.value,
+            )
+        )
+
+        # Create authentication session
         db.add(
             Session(
                 user_id=user.id,
@@ -70,15 +92,19 @@ def register_user_with_session(db: DbSession, email: str, password: str) -> tupl
                 expires_at=datetime.now(UTC) + timedelta(seconds=get_settings().session_ttl_seconds),
             )
         )
+
         db.commit()
         db.refresh(user)
+
     except IntegrityError as exc:
         db.rollback()
+
         if get_user_by_email(db, normalized_email) is not None:
             raise ConflictError(
                 "An account with this email already exists.",
                 code="EMAIL_TAKEN",
             ) from exc
+
         raise
 
     return user, token

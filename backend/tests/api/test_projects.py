@@ -1,5 +1,14 @@
 import pytest
 
+from app.core.config import get_settings
+from app.modules.auth.service import create_session
+from app.modules.organizations.models import OrganizationMember
+
+
+def _organization_id(db, user):
+    membership = db.query(OrganizationMember).filter_by(user_id=user.id, role="OWNER").one()
+    return membership.organization_id
+
 
 def test_create_project_requires_authentication(client):
     response = client.post(
@@ -137,6 +146,7 @@ def test_list_projects_only_returns_signed_in_users_projects(signed_in, db, user
 
     own_project = Project(
         user_id=user.id,
+        organization_id=_organization_id(db, user),
         report_type="PROJECT_REPORT",
         title="My Project Report",
         topic="My topic",
@@ -145,6 +155,7 @@ def test_list_projects_only_returns_signed_in_users_projects(signed_in, db, user
     )
     other_project = Project(
         user_id=other_user.id,
+        organization_id=_organization_id(db, other_user),
         report_type="PROJECT_REPORT",
         title="Other Project Report",
         topic="Other topic",
@@ -173,6 +184,7 @@ def test_list_projects_excludes_soft_deleted_projects(signed_in, db, user):
 
     active_project = Project(
         user_id=user.id,
+        organization_id=_organization_id(db, user),
         report_type="PROJECT_REPORT",
         title="Active Project",
         topic="Active topic",
@@ -181,6 +193,7 @@ def test_list_projects_excludes_soft_deleted_projects(signed_in, db, user):
     )
     deleted_project = Project(
         user_id=user.id,
+        organization_id=_organization_id(db, user),
         report_type="PROJECT_REPORT",
         title="Deleted Project",
         topic="Deleted topic",
@@ -209,6 +222,7 @@ def test_list_projects_supports_pagination(signed_in, db, user):
     projects = [
         Project(
             user_id=user.id,
+            organization_id=_organization_id(db, user),
             report_type="PROJECT_REPORT",
             title=f"Project Report {number}",
             topic=f"Topic {number}",
@@ -265,6 +279,7 @@ def test_get_project_returns_project_details(signed_in, db, user):
 
     project = Project(
         user_id=user.id,
+        organization_id=_organization_id(db, user),
         report_type="PROJECT_REPORT",
         title="My Project Report",
         topic="Testing project retrieval",
@@ -289,6 +304,7 @@ def test_get_project_returns_404_for_another_user(signed_in, db, other_user):
 
     project = Project(
         user_id=other_user.id,
+        organization_id=_organization_id(db, other_user),
         report_type="PROJECT_REPORT",
         title="Other User's Project",
         topic="Testing access control",
@@ -310,6 +326,7 @@ def test_patch_project_updates_fields(signed_in, db, user):
 
     project = Project(
         user_id=user.id,
+        organization_id=_organization_id(db, user),
         report_type="PROJECT_REPORT",
         title="Original Title",
         topic="Original Topic",
@@ -339,6 +356,7 @@ def test_patch_project_returns_404_for_another_user(signed_in, db, other_user):
 
     project = Project(
         user_id=other_user.id,
+        organization_id=_organization_id(db, other_user),
         report_type="PROJECT_REPORT",
         title="Other User's Project",
         topic="Testing access control",
@@ -366,6 +384,7 @@ def test_patch_project_replaces_details(signed_in, db, user):
 
     project = Project(
         user_id=user.id,
+        organization_id=_organization_id(db, user),
         report_type="PROJECT_REPORT",
         title="Project with Details",
         topic="Testing details replacement",
@@ -404,6 +423,7 @@ def test_delete_project_soft_deletes_project(signed_in, db, user):
 
     project = Project(
         user_id=user.id,
+        organization_id=_organization_id(db, user),
         report_type="PROJECT_REPORT",
         title="Project to Delete",
         topic="Testing soft deletion",
@@ -428,6 +448,7 @@ def test_delete_project_returns_404_for_another_user(signed_in, db, other_user):
 
     project = Project(
         user_id=other_user.id,
+        organization_id=_organization_id(db, other_user),
         report_type="PROJECT_REPORT",
         title="Other User's Project",
         topic="Testing access control",
@@ -451,6 +472,7 @@ def test_deleted_project_is_not_in_project_list(signed_in, db, user):
 
     project = Project(
         user_id=user.id,
+        organization_id=_organization_id(db, user),
         report_type="PROJECT_REPORT",
         title="Deleted Project",
         topic="Testing project list",
@@ -475,6 +497,7 @@ def test_patch_project_keeps_omitted_fields_unchanged(signed_in, db, user):
 
     project = Project(
         user_id=user.id,
+        organization_id=_organization_id(db, user),
         report_type="PROJECT_REPORT",
         title="Original Project",
         topic="Original Topic",
@@ -504,6 +527,7 @@ def test_patch_project_rejects_invalid_target_pages(signed_in, db, user):
 
     project = Project(
         user_id=user.id,
+        organization_id=_organization_id(db, user),
         report_type="PROJECT_REPORT",
         title="Validation Test Project",
         topic="Testing target page validation",
@@ -530,6 +554,7 @@ def test_patch_project_rejects_invalid_string_lengths(signed_in, db, user):
 
     project = Project(
         user_id=user.id,
+        organization_id=_organization_id(db, user),
         report_type="PROJECT_REPORT",
         title="Valid Project Title",
         topic="Valid topic",
@@ -605,6 +630,7 @@ def test_patch_project_rejects_null_details(signed_in, db, user):
 
     project = Project(
         user_id=user.id,
+        organization_id=_organization_id(db, user),
         report_type="PROJECT_REPORT",
         title="Details Validation Project",
         topic="Testing null details",
@@ -630,6 +656,7 @@ def test_patch_project_round_trips_numeric_semester(signed_in, db, user):
 
     project = Project(
         user_id=user.id,
+        organization_id=_organization_id(db, user),
         report_type="PROJECT_REPORT",
         title="Semester Test Project",
         topic="Testing numeric semester",
@@ -662,6 +689,54 @@ def test_patch_project_round_trips_numeric_semester(signed_in, db, user):
     semester = get_response.json()["details"]["institution"]["semester"]
     assert semester == 8
     assert isinstance(semester, int)
+
+
+def test_staff_member_can_access_organization_projects(client, db, user, other_user):
+    from app.modules.organizations.models import OrganizationMember
+    from app.modules.projects.models import Project
+
+    project = Project(
+        user_id=user.id,
+        organization_id=_organization_id(db, user),
+        report_type="PROJECT_REPORT",
+        title="Staff access test",
+        topic="Membership-based access",
+    )
+    db.add(project)
+    db.flush()
+
+    db.add(
+        OrganizationMember(
+            organization_id=project.organization_id,
+            user_id=other_user.id,
+            role="STAFF",
+        )
+    )
+    db.commit()
+
+    token = create_session(db, other_user)
+    client.cookies.set(get_settings().session_cookie_name, token)
+
+    # STAFF can see the organisation's project in the project list.
+    response = client.get("/api/v1/projects")
+    assert response.status_code == 200
+    assert any(item["id"] == str(project.id) for item in response.json()["items"])
+
+    # STAFF can read the project.
+    response = client.get(f"/api/v1/projects/{project.id}")
+    assert response.status_code == 200
+
+    # STAFF can update the project.
+    response = client.patch(
+        f"/api/v1/projects/{project.id}",
+        json={"title": "Updated by staff"},
+    )
+    assert response.status_code == 200
+    assert response.json()["title"] == "Updated by staff"
+
+    # STAFF can delete the project.
+    response = client.delete(f"/api/v1/projects/{project.id}")
+    assert response.status_code == 204
 
 
 def test_project_status_recompute_sets_draft():

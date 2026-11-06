@@ -5,6 +5,8 @@ from app.core.exceptions import NotFoundError
 from app.modules.auth.service import create_session, revoke_session
 from app.modules.jobs.enums import JobType
 from app.modules.jobs.service import create_job
+from app.modules.organizations.enums import OrganizationRole
+from app.modules.organizations.models import OrganizationMember
 from app.modules.projects.models import Project
 
 
@@ -31,7 +33,15 @@ def test_revoked_session_is_rejected(client, db, user):
 
 
 def _project(db, owner):
-    p = Project(user_id=owner.id, report_type="PROJECT_REPORT", title="T", topic="t")
+    membership = db.query(OrganizationMember).filter_by(user_id=owner.id, role="OWNER").one()
+
+    p = Project(
+        user_id=owner.id,
+        organization_id=membership.organization_id,
+        report_type="PROJECT_REPORT",
+        title="T",
+        topic="t",
+    )
     db.add(p)
     db.commit()
     return p
@@ -40,11 +50,28 @@ def _project(db, owner):
 def test_owned_project_dependency_hides_other_users_projects(db, user, other_user):
     mine = _project(db, user)
     theirs = _project(db, other_user)
+
+    # Add other_user as a STAFF member of user's organization.
+    db.add(
+        OrganizationMember(
+            organization_id=mine.organization_id,
+            user_id=other_user.id,
+            role=OrganizationRole.STAFF.value,
+        )
+    )
+    db.commit()
+
+    # The owner can access their project.
     assert get_owned_project(mine.id, db, user).id == mine.id
+
+    # A STAFF member can access the same organization project.
+    assert get_owned_project(mine.id, db, other_user).id == mine.id
+
+    # A non-member cannot access another organization's project.
     try:
         get_owned_project(theirs.id, db, user)
     except NotFoundError as e:
-        assert e.status_code == 404  # never 403
+        assert e.status_code == 404
     else:
         raise AssertionError("expected NotFoundError")
 
@@ -137,3 +164,37 @@ def test_project_jobs_returns_empty_list(signed_in, db, user):
 
     assert response.status_code == 200
     assert response.json() == []
+
+
+def test_staff_member_can_access_organization_jobs(signed_in, db, user, other_user):
+    project = _project(db, user)
+
+    # Add other_user as a STAFF member of the project's organization.
+    db.add(
+        OrganizationMember(
+            organization_id=project.organization_id,
+            user_id=other_user.id,
+            role=OrganizationRole.STAFF.value,
+        )
+    )
+    db.commit()
+
+    job = create_job(
+        db,
+        job_type=JobType.INGEST_PDF,
+        project_id=project.id,
+    )
+
+    # Authenticate as the STAFF member.
+    token = create_session(db, other_user)
+    signed_in.cookies.set("session_id", token)
+
+    # STAFF can read the job directly.
+    job_response = signed_in.get(f"/api/v1/jobs/{job.id}")
+    assert job_response.status_code == 200
+    assert job_response.json()["id"] == str(job.id)
+
+    # STAFF can list jobs belonging to the organization project.
+    project_jobs_response = signed_in.get(f"/api/v1/projects/{project.id}/jobs")
+    assert project_jobs_response.status_code == 200
+    assert str(job.id) in {item["id"] for item in project_jobs_response.json()}

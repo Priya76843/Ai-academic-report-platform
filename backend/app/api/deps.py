@@ -11,6 +11,7 @@ from app.core.config import get_settings
 from app.core.exceptions import NotFoundError, UnauthenticatedError
 from app.db.session import get_db
 from app.modules.auth.service import get_user_for_token
+from app.modules.organizations.models import OrganizationMember
 from app.modules.projects.models import Project
 from app.modules.users.models import User
 
@@ -32,10 +33,21 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 
 def get_owned_project(project_id: uuid.UUID, db: DbDep, user: CurrentUser) -> Project:
     project = db.execute(
-        select(Project).where(Project.id == project_id, Project.user_id == user.id, Project.deleted_at.is_(None))
+        select(Project)
+        .join(
+            OrganizationMember,
+            OrganizationMember.organization_id == Project.organization_id,
+        )
+        .where(
+            Project.id == project_id,
+            OrganizationMember.user_id == user.id,
+            Project.deleted_at.is_(None),
+        )
     ).scalar_one_or_none()
+
     if project is None:
         raise NotFoundError("Project not found.")
+
     return project
 
 

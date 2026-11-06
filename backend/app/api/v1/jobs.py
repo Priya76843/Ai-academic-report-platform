@@ -8,6 +8,7 @@ from app.core.exceptions import NotFoundError
 from app.modules.jobs.enums import JobStatus
 from app.modules.jobs.models import Job
 from app.modules.jobs.schemas import JobOut
+from app.modules.organizations.models import OrganizationMember
 from app.modules.projects.models import Project
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
@@ -25,9 +26,13 @@ def get_job(job_id: UUID, db: DbDep, user: CurrentUser) -> JobOut:
     job = db.execute(
         select(Job)
         .join(Project, Project.id == Job.project_id)
+        .join(
+            OrganizationMember,
+            OrganizationMember.organization_id == Project.organization_id,
+        )
         .where(
             Job.id == job_id,
-            Project.user_id == user.id,
+            OrganizationMember.user_id == user.id,
             Project.deleted_at.is_(None),
         )
     ).scalar_one_or_none()

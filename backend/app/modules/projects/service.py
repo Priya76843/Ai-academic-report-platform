@@ -8,6 +8,8 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import ConflictError
+from app.modules.organizations.enums import OrganizationKind, OrganizationRole
+from app.modules.organizations.models import Organization, OrganizationMember
 from app.modules.projects.enums import CitationStyle, ProjectStatus, ReportType
 from app.modules.projects.idempotency_models import ProjectIdempotencyKey
 from app.modules.projects.models import Project
@@ -45,6 +47,25 @@ def create_project(
         )
 
     now = datetime.now(UTC)
+    organization = db.execute(
+        select(Organization)
+        .join(
+            OrganizationMember,
+            OrganizationMember.organization_id == Organization.id,
+        )
+        .where(
+            OrganizationMember.user_id == user_id,
+            OrganizationMember.role == OrganizationRole.OWNER.value,
+            Organization.kind == OrganizationKind.STUDENT.value,
+        )
+    ).scalar_one_or_none()
+
+    if organization is None:
+        raise ConflictError(
+            "Personal organization not found for this user.",
+            code="PERSONAL_ORGANIZATION_NOT_FOUND",
+        )
+
     request_hash = _request_hash(data)
 
     try:
@@ -124,6 +145,7 @@ def create_project(
 
             project = Project(
                 user_id=user_id,
+                organization_id=organization.id,
                 report_type=data.report_type.value,
                 title=data.title,
                 topic=data.topic,
@@ -164,8 +186,10 @@ def list_projects(
     page: int = 1,
     page_size: int = 20,
 ) -> tuple[list[Project], int]:
+    membership = select(OrganizationMember.organization_id).where(OrganizationMember.user_id == user_id)
+
     filters = (
-        Project.user_id == user_id,
+        Project.organization_id.in_(membership),
         Project.deleted_at.is_(None),
     )
 
@@ -185,6 +209,7 @@ def list_projects(
 def build_project_response(project: Project) -> ProjectOut:
     return ProjectOut(
         id=project.id,
+        organization_id=project.organization_id,
         report_type=ReportType(project.report_type),
         title=project.title,
         topic=project.topic,
