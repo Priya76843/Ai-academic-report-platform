@@ -73,6 +73,7 @@ type SourceMock = {
   created_at: string;
 };
 const assets = new Map<string, AssetMock>();
+const uploadedAssets = new Set<string>();
 const sources = new Map<string, SourceMock>();
 const sourcePolls = new Map<string, number>();
 const plans = new Map<string, ResourceRecord>();
@@ -226,27 +227,21 @@ export const resourceMockState = {
     failNextCreate = false;
     nextValidationErrors = null;
   },
-
   setProjects(nextProjects: Project[]) {
     projects.clear();
-
     for (const item of nextProjects) {
       projects.set(item.id, cloneProject(item));
     }
   },
-
   failNextCreateOnce() {
     failNextCreate = true;
   },
-
   setNextCreateValidationError(fields: Record<string, string>) {
     nextValidationErrors = { ...fields };
   },
-
   getIdempotencyKeys() {
     return [...idempotencyKeys];
   },
-
   resetJobs() {
     jobs.clear();
   },
@@ -255,6 +250,7 @@ export const resourceMockState = {
     projects.set(fixture.id, cloneProject(fixture));
     idempotency.clear();
     assets.clear();
+    uploadedAssets.clear();
     sources.clear();
     sourcePolls.clear();
     plans.clear();
@@ -276,7 +272,6 @@ export const resourceHandlers = [
     if (key) {
       idempotencyKeys.push(key);
     }
-
     if (failNextCreate) {
       failNextCreate = false;
       return HttpResponse.error();
@@ -324,7 +319,6 @@ export const resourceHandlers = [
       Object.assign(fields, nextValidationErrors);
       nextValidationErrors = null;
     }
-
     if (Object.keys(fields).length) {
       return error(
         422,
@@ -505,15 +499,47 @@ export const resourceHandlers = [
       { status: 201 },
     );
   }),
-  http.post("/api/v1/projects/:id/assets/:aid/complete", ({ params }) => {
-    const asset = assets.get(String(params.aid));
-    if (!asset || asset.project_id !== String(params.id)) {
-      return error(409, "OBJECT_NOT_FOUND", "Uploaded asset was not found.");
-    }
-    const completed = { ...asset, status: "READY" };
-    assets.set(completed.id, completed);
-    return HttpResponse.json(completed);
-  }),
+  // Mock presigned asset upload
+  http.put(
+    "https://mock-upload.local/:aid",
+    async ({ params, request }) => {
+      const assetId = String(params.aid);
+      const asset = assets.get(assetId);
+      if (!asset) {
+        return error(404, "OBJECT_NOT_FOUND", "Asset not found.");
+      }
+      const body = await request.arrayBuffer();
+      if (body.byteLength === 0) {
+        return error(422, "VALIDATION_ERROR", "Uploaded file is empty.");
+      }
+      if (body.byteLength !== asset.size_bytes) {
+        return error(
+          422,
+          "VALIDATION_ERROR",
+          "Uploaded file size does not match.",
+        );
+      }
+      uploadedAssets.add(assetId);
+      return new HttpResponse(null, { status: 200 });
+    },
+  ),
+  http.post(
+    "/api/v1/projects/:id/assets/:aid/complete",
+    ({ params }) => {
+      const projectId = String(params.id);
+      const assetId = String(params.aid);
+      const asset = assets.get(assetId);
+      if (!asset || asset.project_id !== projectId) {
+        return error(409, "OBJECT_NOT_FOUND", "Uploaded asset was not found.");
+      }
+      if (!uploadedAssets.has(assetId)) {
+        return error(409, "OBJECT_NOT_FOUND", "Asset upload has not completed.");
+      }
+      const completed = { ...asset, status: "READY" };
+      assets.set(completed.id, completed);
+      return HttpResponse.json(completed);
+    },
+  ),
   http.get("/api/v1/assets/:aid/url", ({ params }) => {
     const asset = assets.get(String(params.aid));
     if (!asset || asset.status !== "READY") {

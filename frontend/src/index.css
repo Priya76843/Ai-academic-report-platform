@@ -1,5 +1,4 @@
 @import "tailwindcss";
-
 /* Design tokens from the Slice One Walkthrough. Semantic colours are separate from the accent. */
 @theme {
   --color-ink: #14181f;

@@ -99,6 +99,42 @@ export interface Project {
   updated_at: string;
 }
 
+export interface Asset {
+  id: string;
+  project_id: string;
+  asset_type: string;
+  filename: string;
+  mime_type: string;
+  size_bytes: number;
+  width: number | null;
+  height: number | null;
+  status: string;
+  created_at: string;
+}
+
+export interface FrontMatterItem {
+  key: string;
+  title: string;
+  auto: boolean;
+  required_details: string[];
+}
+
+export interface ReportPlan {
+  id: string;
+  project_id: string;
+  template_key: string;
+  template_name: string;
+  front_matter: FrontMatterItem[];
+  style_summary: {
+    font: string;
+    font_size: number;
+    line_spacing: number;
+    margins: Record<string, number>;
+    citation_style: string;
+  };
+  sections: SectionSummary[];
+}
+
 export interface Source {
   id: string;
   project_id: string;
@@ -122,6 +158,18 @@ export interface SourcesList {
     paper_ready_count: number;
     can_continue_to_plan: boolean;
   };
+}
+
+export interface SectionSummary {
+  id: string;
+  title: string;
+  section_type: string;
+  order_index: number;
+  status: SectionStatus;
+  target_words: number;
+  evidence_policy: string;
+  active_version_id: string | null;
+  approved_version_id: string | null;
 }
 
 export interface Page<T> {

@@ -1,6 +1,13 @@
 import { queryOptions } from "@tanstack/react-query";
 import { api } from "./client";
-import type { Job, Page, Project, SourcesList, User } from "./types";
+import type {
+  Job,
+  Page,
+  Project,
+  ReportPlan,
+  SourcesList,
+  User,
+} from "./types";
 
 export const queries = {
   me: () =>
@@ -14,7 +21,8 @@ export const queries = {
   projects: (page = 1) =>
     queryOptions({
       queryKey: ["projects", page],
-      queryFn: () => api<Page<Project>>(`/projects?page=${page}&page_size=20`),
+      queryFn: () =>
+        api<Page<Project>>(`/projects?page=${page}&page_size=20`),
     }),
 
   project: (id: string) =>
@@ -27,6 +35,13 @@ export const queries = {
     queryOptions({
       queryKey: ["sources", id],
       queryFn: () => api<SourcesList>(`/projects/${id}/sources`),
+    }),
+
+  plan: (id: string) =>
+    queryOptions({
+      queryKey: ["plan", id],
+      queryFn: () => api<ReportPlan>(`/projects/${id}/plan`),
+      retry: false,
     }),
 
   job: (id: string) =>
