@@ -11,7 +11,6 @@ PR rules: branch from `develop`, PR into `develop` (never `main`), CI green, rev
 ## Ready (state Todo)
 | Code | Plane | Title | Owner | Target |
 |---|---|---|---|---|
-| B-03a | INTERNSHIP-60 | Organisations and membership-based ownership | Vinay | 2026-11-06 — **do before B-05/B-06** |
 | B-05 | INTERNSHIP-24 | Object storage adapter and project assets (+ `PATCH logo_asset_id`, contract 2026-11-02) | Vinay | Week 2 |
 | B-06 | INTERNSHIP-25 | Sources API | Vinay | Week 2 |
 | F-06 | INTERNSHIP-51 | Sources | Priya | Week 2 |
@@ -53,10 +52,11 @@ PR rules: branch from `develop`, PR into `develop` (never `main`), CI green, rev
 | F-14 | INTERNSHIP-59 | [Slice 2+] Figures: screenshots as numbered figures | Priya |
 
 ## In Progress
-- F-05 Setup — report details (Priya) — see In Review.
+- B-05 Object storage adapter and project assets (Vinay) — next after B-03a.
+- F-06 Sources (Priya) — implementation plan in progress.
 
 ## In Review
-- **PR #15** F-05 — changes requested 2026-11-02: rebase onto `develop` (stacked on pre-squash F-03), add page tests, use design tokens, keep the `/sections/:sectionId` route, strip BOM. Logo attachment waits on the contract amendment (`PATCH logo_asset_id`) and B-05.
+(none)
 
 ## Blocked
 - Embedding provider and vector dimension (founder decision D-4) — blocks B-10 beyond FakeProvider.
@@ -76,10 +76,15 @@ PR rules: branch from `develop`, PR into `develop` (never `main`), CI green, rev
 | F-03 Sign in and register | #10 | 2026-10-30 |
 | B-04 Jobs framework (+ `GET /projects/{id}/jobs`) | #11 | 2026-11-02 |
 | Contract: idempotency, jobs list, semester int, organisations | #12 | 2026-10-30 |
+| F-05 Setup — report details | #15 | 2026-11-06 |
+| Housekeeping: contract `logo_asset_id`, CI BOM guard | #16 | 2026-11-02 |
+| B-03a Organisations and membership-based ownership | #17 | 2026-11-06 |
 | Onboarding INTERNSHIP-1, 2, 3 | — | — |
 
 ## Follow-ups (small, no ticket)
 - Backend: `app/db/models.py` should import `OperationReceipt` from `jobs.models`, not `jobs.idempotency` (LOW, from PR #11).
-- Frontend: after B-03a merges run `make openapi` + `npm run gen:api`; add a Playwright/MSW smoke for register → login → create project against the real backend (part of F-10).
+- Backend (from PR #17): the membership predicate is written three times (`deps`, `jobs.get_job`, `projects.list_projects`); extract one `user_organization_ids(user_id)` subquery. `conftest.py` re-implements personal-organisation creation; extract `create_personal_organization(db, user)`.
+- Frontend (from PR #15): once B-05 lands, send `logo_asset_id` in the Setup save PATCH and preview the existing logo via `GET /assets/{aid}/url`.
+- Frontend: add a Playwright/MSW smoke for register → login → create project against the real backend (part of F-10).
 
-_Regenerated 2026-11-02 after the merge round. Previous tickets 4–18 archived in `docs/reviews/plane-backup-2026-10-06.json`._
+_Regenerated 2026-11-06 after merging #15 and #17. Previous tickets 4–18 archived in `docs/reviews/plane-backup-2026-10-06.json`._
