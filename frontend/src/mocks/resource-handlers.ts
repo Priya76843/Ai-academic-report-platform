@@ -17,6 +17,7 @@ type MockJob = {
   started_at: string | null;
   completed_at: string | null;
   polls: number;
+  should_fail?: boolean;
   export_id?: string;
 };
 const error = (
@@ -45,6 +46,7 @@ const idempotency = new Map<string, Project>();
 let idempotencyKeys: string[] = [];
 let failNextCreate = false;
 let nextValidationErrors: Record<string, string> | null = null;
+let failNextSourceJob = false;
 type AssetMock = {
   id: string;
   project_id: string;
@@ -68,14 +70,13 @@ type SourceMock = {
   size_bytes: number | null;
   status: string;
   error: { category: string; message: string } | null;
-  summary: string | null;
+  summary: unknown | null;
   citation_key: string | null;
   created_at: string;
 };
 const assets = new Map<string, AssetMock>();
 const uploadedAssets = new Set<string>();
 const sources = new Map<string, SourceMock>();
-const sourcePolls = new Map<string, number>();
 const plans = new Map<string, ResourceRecord>();
 const sections = new Map<string, ResourceRecord>();
 const figures = new Map<string, ResourceRecord>();
@@ -109,6 +110,13 @@ const createJob = (input: {
   resource_id: string | null;
   export_id?: string;
 }): MockJob => {
+  const shouldFail =
+    input.resource_type === "source" && failNextSourceJob;
+
+  if (shouldFail) {
+    failNextSourceJob = false;
+  }
+
   const job: MockJob = {
     id: crypto.randomUUID(),
     project_id: input.project_id,
@@ -123,6 +131,7 @@ const createJob = (input: {
     started_at: null,
     completed_at: null,
     polls: 0,
+    ...(shouldFail ? { should_fail: true } : {}),
     ...(input.export_id ? { export_id: input.export_id } : {}),
   };
   jobs.set(job.id, job);
@@ -132,6 +141,7 @@ const createJob = (input: {
 const publicJob = (job: MockJob) => {
   const result: Record<string, unknown> = { ...job };
   delete result.polls;
+  delete result.should_fail;
   delete result.export_id;
   return result;
 };
@@ -145,8 +155,15 @@ const pollJob = (id: string): Record<string, unknown> | undefined => {
   }
   const polls = current.polls + 1;
   const now = timestamp();
+  const shouldFail = current.should_fail === true && polls >= 3;
   const status: MockJob["status"] =
-    polls === 1 ? "QUEUED" : polls === 2 ? "RUNNING" : "SUCCEEDED";
+    polls === 1
+      ? "QUEUED"
+      : polls === 2
+        ? "RUNNING"
+        : shouldFail
+          ? "FAILED"
+          : "SUCCEEDED";
   const updated: MockJob = {
     ...current,
     polls,
@@ -164,6 +181,33 @@ const pollJob = (id: string): Record<string, unknown> | undefined => {
           : { step: "Completed", completed: 2, total: 2 },
   };
   jobs.set(id, updated);
+
+    if (
+    updated.status === "SUCCEEDED" &&
+    updated.resource_type === "source" &&
+    typeof updated.resource_id === "string"
+  ) {
+    const source = sources.get(updated.resource_id);
+
+    if (source) {
+      sources.set(source.id, {
+        ...source,
+        status: "READY",
+        ...(source.source_type === "PAPER"
+          ? {
+              summary: {
+                title: source.filename ?? "Sample research paper",
+                authors: ["A. Researcher"],
+                year: 2024,
+                page_count: 8,
+                passage_count: 24,
+                extraction_quality: "high",
+              },
+            }
+          : {}),
+      });
+    }
+  }
   if (updated.export_id) {
     const exportRecord = exportsById.get(updated.export_id);
     if (exportRecord) {
@@ -182,19 +226,6 @@ const pollJob = (id: string): Record<string, unknown> | undefined => {
     }
   }
   return publicJob(updated);
-};
-const pollSource = (source: SourceMock): SourceMock => {
-  if (source.status !== "PROCESSING") {
-    return source;
-  }
-  const polls = (sourcePolls.get(source.id) ?? 0) + 1;
-  sourcePolls.set(source.id, polls);
-  if (polls >= 2) {
-    const ready = { ...source, status: "READY" };
-    sources.set(ready.id, ready);
-    return ready;
-  }
-  return source;
 };
 const asyncJobResponse = (job: MockJob) => ({
   job_id: job.id,
@@ -219,6 +250,19 @@ export const resourceMockState = {
     };
   },
   pollJob,
+  getSources(projectId: string) {
+    return projectSources(projectId).map((source) =>
+      structuredClone(source),
+    );
+  },
+  setSources(nextSources: SourceMock[]) {
+    sources.clear();
+    uploadedAssets.clear();
+
+    for (const source of nextSources) {
+      sources.set(source.id, structuredClone(source));
+    }
+  },
   resetProjects() {
     projects.clear();
     projects.set(fixture.id, cloneProject(fixture));
@@ -252,7 +296,6 @@ export const resourceMockState = {
     assets.clear();
     uploadedAssets.clear();
     sources.clear();
-    sourcePolls.clear();
     plans.clear();
     sections.clear();
     figures.clear();
@@ -499,27 +542,35 @@ export const resourceHandlers = [
       { status: 201 },
     );
   }),
-  // Mock presigned asset upload
+  // Mock presigned upload for assets and sources.
   http.put(
     "https://mock-upload.local/:aid",
     async ({ params, request }) => {
-      const assetId = String(params.aid);
-      const asset = assets.get(assetId);
-      if (!asset) {
-        return error(404, "OBJECT_NOT_FOUND", "Asset not found.");
+      const resourceId = String(params.aid);
+      const asset = assets.get(resourceId);
+      const source = sources.get(resourceId);
+
+      if (!asset && !source) {
+        return error(404, "OBJECT_NOT_FOUND", "Uploaded resource not found.");
       }
+
       const body = await request.arrayBuffer();
+
       if (body.byteLength === 0) {
         return error(422, "VALIDATION_ERROR", "Uploaded file is empty.");
       }
-      if (body.byteLength !== asset.size_bytes) {
-        return error(
-          422,
-          "VALIDATION_ERROR",
-          "Uploaded file size does not match.",
-        );
+
+      const expectedSize = asset?.size_bytes ?? source?.size_bytes;
+
+      if (
+        expectedSize !== null &&
+        expectedSize !== undefined &&
+        body.byteLength !== expectedSize
+      ) {
+        return error(422, "SIZE_MISMATCH", "Uploaded file size does not match.");
       }
-      uploadedAssets.add(assetId);
+
+      uploadedAssets.add(resourceId);
       return new HttpResponse(null, { status: 200 });
     },
   ),
@@ -553,10 +604,13 @@ export const resourceHandlers = [
   // Sources
   http.get("/api/v1/projects/:id/sources", ({ params }) => {
     const projectId = String(params.id);
+
     if (!projects.has(projectId)) {
       return error(404, "NOT_FOUND", "Project not found.");
     }
-    const items = projectSources(projectId).map(pollSource);
+
+    const items = projectSources(projectId);
+
     return HttpResponse.json({
       items,
       readiness: {
@@ -578,35 +632,49 @@ export const resourceHandlers = [
       },
     });
   }),
+
   http.post("/api/v1/projects/:id/sources", async ({ params, request }) => {
     const projectId = String(params.id);
+
     if (!projects.has(projectId)) {
       return error(404, "NOT_FOUND", "Project not found.");
     }
+
     const body = (await request.json().catch(() => ({}))) as JsonObject;
-    const allowed: SourceType[] = [
-      "PAPER",
-      "PAPER_LINK",
-      "COLLEGE_FORMAT",
-      "SOURCE_CODE",
-      "SCREENSHOT",
-    ];
+
+    // Slice 1 supports research-paper uploads.
+    // College formats are selected through the template library.
+    // Other source types are not enabled in this slice.
+    const allowed: SourceType[] = ["PAPER", "PAPER_LINK"];
+
     const sourceType = body.source_type as SourceType;
-    const fields: Record<string, string> = {};
+
     if (!allowed.includes(sourceType)) {
-      fields.source_type = "Choose a valid source type.";
+      return error(422, "UNSUPPORTED_TYPE", "Invalid source type.", {
+        source_type: "Choose a valid source type.",
+      });
     }
+
     if (
       sourceType === "PAPER_LINK" &&
       (typeof body.url !== "string" || !/^https?:\/\//i.test(body.url))
     ) {
-      fields.url = "Enter a valid HTTP or HTTPS URL.";
+      return error(422, "VALIDATION_ERROR", "Invalid source URL.", {
+        url: "Enter a valid HTTP or HTTPS URL.",
+      });
     }
-    if (Object.keys(fields).length) {
-      return error(422, "UNSUPPORTED_TYPE", "Invalid source details.", fields);
+
+    if (
+      sourceType === "PAPER" &&
+      typeof body.size_bytes === "number" &&
+      body.size_bytes > 25 * 1024 * 1024
+    ) {
+      return error(422, "SOURCE_TOO_LARGE", "PDF exceeds the 25 MB limit.");
     }
+
     const sourceId = crypto.randomUUID();
     const linked = sourceType === "PAPER_LINK";
+
     const source: SourceMock = {
       id: sourceId,
       project_id: projectId,
@@ -622,22 +690,35 @@ export const resourceHandlers = [
       citation_key: `S${sources.size + 1}`,
       created_at: timestamp(),
     };
+
     sources.set(sourceId, source);
+
     return HttpResponse.json(
       linked ? { source } : { source, upload: upload(sourceId) },
       { status: 201 },
     );
   }),
+
   http.post(
     "/api/v1/projects/:id/sources/:sid/complete",
     ({ params }) => {
       const source = sources.get(String(params.sid));
+
       if (!source || source.project_id !== String(params.id)) {
         return error(409, "OBJECT_NOT_FOUND", "Source was not found.");
       }
+
+      if (!uploadedAssets.has(source.id)) {
+        return error(
+          409,
+          "OBJECT_NOT_FOUND",
+          "Source upload has not completed.",
+        );
+      }
+
       const updated = { ...source, status: "PROCESSING" };
       sources.set(updated.id, updated);
-      sourcePolls.set(updated.id, 0);
+
       const jobType =
         source.source_type === "PAPER" ||
         source.source_type === "PAPER_LINK"
@@ -647,19 +728,23 @@ export const resourceHandlers = [
             : source.source_type === "SOURCE_CODE"
               ? "analyze_code"
               : "analyze_screenshot";
+
       const job = createJob({
         job_type: jobType,
         project_id: source.project_id,
         resource_type: "source",
         resource_id: source.id,
       });
+
       return HttpResponse.json(asyncJobResponse(job), { status: 202 });
     },
   ),
+
   http.post(
     "/api/v1/projects/:id/sources/:sid/attach-pdf",
     async ({ params, request }) => {
       const source = sources.get(String(params.sid));
+
       if (
         !source ||
         source.project_id !== String(params.id) ||
@@ -671,8 +756,10 @@ export const resourceHandlers = [
           "A matching linked source was not found.",
         );
       }
+
       const body = (await request.json().catch(() => ({}))) as JsonObject;
       const sourceId = crypto.randomUUID();
+
       const attached: SourceMock = {
         ...source,
         id: sourceId,
@@ -686,49 +773,85 @@ export const resourceHandlers = [
         status: "UPLOADED",
         created_at: timestamp(),
       };
+
       sources.set(sourceId, attached);
+
       return HttpResponse.json(
         { source: attached, upload: upload(sourceId) },
         { status: 201 },
       );
     },
   ),
+
   http.get("/api/v1/projects/:id/sources/:sid", ({ params }) => {
     const source = sources.get(String(params.sid));
+
     if (!source || source.project_id !== String(params.id)) {
       return error(404, "NOT_FOUND", "Source not found.");
     }
-    return HttpResponse.json(pollSource(source));
+
+    return HttpResponse.json(source);
   }),
+
   http.delete("/api/v1/projects/:id/sources/:sid", ({ params }) => {
     const source = sources.get(String(params.sid));
+
     if (!source || source.project_id !== String(params.id)) {
       return error(404, "NOT_FOUND", "Source not found.");
     }
+
+    const isUsedByApprovedVersion = projectSections(
+      source.project_id,
+    ).some(
+      (section) =>
+        section.status === "APPROVED" &&
+        section.approved_version_id !== null &&
+        typeof section.content === "string" &&
+        typeof source.citation_key === "string" &&
+        source.citation_key.length > 0 &&
+        section.content.includes(source.citation_key),
+    );
+
+    if (isUsedByApprovedVersion) {
+      return error(
+        409,
+        "SOURCE_IN_USE",
+        "This source is cited by an approved section and cannot be deleted.",
+      );
+    }
+
     sources.delete(source.id);
-    sourcePolls.delete(source.id);
+    uploadedAssets.delete(source.id);
+
     return new HttpResponse(null, { status: 204 });
   }),
+
   // Template library
   http.get("/api/v1/templates/library", () =>
     HttpResponse.json({ items: templates }),
   ),
+
   http.post(
     "/api/v1/projects/:id/template/select",
     async ({ params, request }) => {
       const projectId = String(params.id);
+
       if (!projects.has(projectId)) {
         return error(404, "NOT_FOUND", "Project not found.");
       }
+
       const body = (await request.json().catch(() => ({}))) as {
         template_key?: string;
       };
+
       const template = templates.find(
         (item) => item.template_key === body.template_key,
       );
+
       if (!template) {
         return error(422, "VALIDATION_ERROR", "Unknown template.");
       }
+
       if (
         projectSources(projectId).some(
           (source) =>
@@ -742,6 +865,7 @@ export const resourceHandlers = [
           "A ready format already exists.",
         );
       }
+
       const source: SourceMock = {
         id: crypto.randomUUID(),
         project_id: projectId,
@@ -753,11 +877,23 @@ export const resourceHandlers = [
         size_bytes: null,
         status: "READY",
         error: null,
-        summary: null,
+        summary: {
+          front_matter: template.front_matter,
+          chapter_count: template.chapter_count,
+          style: {
+            font: "Times New Roman",
+            size: 12,
+            spacing: 1.5,
+            margins: "1 inch",
+            citation_style: projects.get(projectId)?.citation_style ?? "IEEE",
+          },
+        },
         citation_key: null,
         created_at: timestamp(),
       };
+
       sources.set(source.id, source);
+
       return HttpResponse.json(source, { status: 201 });
     },
   ),

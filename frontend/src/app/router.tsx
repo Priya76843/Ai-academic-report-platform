@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from "react-router-dom";
+﻿import { createBrowserRouter, Navigate } from "react-router-dom";
 import { AppShell } from "./shells/AppShell";
 import { SignInPage } from "@/features/auth/SignInPage";
 import { RequireAuth } from "@/features/auth/RequireAuth";
@@ -6,6 +6,7 @@ import { ProjectsPage } from "@/features/projects/ProjectsPage";
 import { NewProjectPage } from "@/features/projects/NewProjectPage";
 import { ReportDetailsPage } from "@/features/projects/ReportDetailsPage";
 import { Placeholder } from "@/features/projects/Placeholder";
+import { SourcesPage } from "@/features/projects/SourcesPage";
 
 export const router = createBrowserRouter([
   {
@@ -40,7 +41,7 @@ export const router = createBrowserRouter([
           },
           {
             path: "/projects/:projectId/sources",
-            element: <Placeholder screen="Sources" ticket="F-06" />,
+            element: <SourcesPage />,
           },
           {
             path: "/projects/:projectId/plan",

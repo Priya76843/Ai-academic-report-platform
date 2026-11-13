@@ -1,6 +1,6 @@
 import { http, HttpResponse } from "msw";
 import { user } from "./fixtures";
-import type { ErrorEnvelope, Project } from "@/lib/api/types";
+import type { ErrorEnvelope, Project, Source } from "@/lib/api/types";
 import {
   resourceHandlers,
   resourceMockState,
@@ -46,6 +46,14 @@ export const mockState = {
 
   resetProjects() {
     resourceMockState.resetProjects();
+  },
+
+  getSources(projectId: string) {
+    return resourceMockState.getSources(projectId);
+  },
+
+  setSources(nextSources: Source[]) {
+    resourceMockState.setSources(nextSources);
   },
 
   setProjects(nextProjects: Project[]) {
