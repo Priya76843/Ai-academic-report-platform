@@ -1,4 +1,4 @@
-﻿import { createBrowserRouter, Navigate } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import { AppShell } from "./shells/AppShell";
 import { SignInPage } from "@/features/auth/SignInPage";
 import { RequireAuth } from "@/features/auth/RequireAuth";
