@@ -250,6 +250,16 @@ export const resourceMockState = {
     };
   },
   pollJob,
+  listProjectJobs(projectId: string, activeOnly = false) {
+    return [...jobs.values()]
+      .filter((job) => job.project_id === projectId)
+      .filter(
+        (job) =>
+          !activeOnly ||
+          (job.status !== "SUCCEEDED" && job.status !== "FAILED"),
+      )
+      .map((job) => publicJob(job));
+  },
   getSources(projectId: string) {
     return projectSources(projectId).map((source) =>
       structuredClone(source),
@@ -308,6 +318,16 @@ export const resourceMockState = {
   },
 };
 export const resourceHandlers = [
+  // List project jobs (used to restore active jobs after refresh)
+  http.get("/api/v1/projects/:id/jobs", ({ params, request }) => {
+    const activeOnly =
+      new URL(request.url).searchParams.get("active") === "true";
+
+    return HttpResponse.json(
+      resourceMockState.listProjectJobs(String(params.id), activeOnly),
+    );
+  }),
+
   // Create project
   http.post("/api/v1/projects", async ({ request }) => {
     const body = (await request.json().catch(() => ({}))) as JsonObject;

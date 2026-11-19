@@ -1,5 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+﻿import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -89,13 +90,23 @@ class MockXMLHttpRequest {
   };
 
   status = 200;
+  url = "";
+  method = "";
+  headers: Record<string, string> = {};
 
   onload: (() => void) | null = null;
   onerror: (() => void) | null = null;
   onabort: (() => void) | null = null;
 
-  open = vi.fn();
-  setRequestHeader = vi.fn();
+  open = vi.fn((method: string, url: string) => {
+    this.method = method;
+    this.url = url;
+  });
+
+  setRequestHeader = vi.fn((name: string, value: string) => {
+    this.headers[name] = value;
+  });
+
   send = vi.fn();
 
   constructor() {
@@ -320,12 +331,73 @@ describe("SourcesPage", () => {
       total: 100,
     } as ProgressEvent;
 
-    MockXMLHttpRequest.instance.upload.onprogress?.(progressEvent);
+    act(() => {
+      MockXMLHttpRequest.instance.upload.onprogress?.(progressEvent);
+    });
 
     expect(
       await screen.findByText("Uploading: 50%"),
     ).toBeInTheDocument();
   });
+
+  it(
+    "marks a successfully uploaded PDF as READY after processing",
+    async () => {
+      vi.stubGlobal(
+        "XMLHttpRequest",
+        MockXMLHttpRequest as unknown as typeof XMLHttpRequest,
+      );
+
+      renderPage();
+
+      const fileContent = "sample PDF content";
+
+      const file = new File(
+        [fileContent],
+        "research-paper.pdf",
+        { type: "application/pdf" },
+      );
+
+      const input = document.querySelector(
+        'input[type="file"]',
+      ) as HTMLInputElement;
+
+      fireEvent.change(input, {
+        target: { files: [file] },
+      });
+
+      expect(
+        await screen.findByText("Uploading: 0%"),
+      ).toBeInTheDocument();
+
+      await act(async () => {
+        const xhr = MockXMLHttpRequest.instance;
+
+        // Execute the actual MSW presigned-upload handler.
+        const response = await fetch(xhr.url, {
+          method: xhr.method,
+          headers: xhr.headers,
+          body: new TextEncoder().encode(fileContent),
+        });
+
+        expect(response.status).toBe(200);
+
+        // Notify the component that the upload request succeeded.
+        xhr.status = response.status;
+        xhr.onload?.();
+      });
+
+      // Wait for the processing job and READY source status.
+      expect(
+        await screen.findByText(
+          "Ready",
+          {},
+          { timeout: 12000 },
+        ),
+      ).toBeInTheDocument();
+    },
+    15000,
+  );
 
   it("cancels an active PDF upload", async () => {
     vi.stubGlobal(
